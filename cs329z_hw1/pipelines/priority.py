@@ -6,6 +6,7 @@ import re
 from datetime import datetime
 
 from cs329z_hw1.data import REPO_ROOT
+from cs329z_hw1.llm import OutputTruncated
 from cs329z_hw1.types import Email, LMCallable
 
 RUBRIC = (REPO_ROOT / "data" / "priority_rubric.md").read_text()
@@ -61,8 +62,11 @@ def classify_priority(email: Email, lm: LMCallable) -> dict:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": _format_email(email)},
     ]
+    # Only a truncated reply is handled here: parse whatever text came back.
+    # BudgetExceeded, a missing key or a network error is a setup problem
+    # and propagates.
     try:
         reply = lm(messages)
-    except Exception as exc:
-        return {"category": "unknown", "reason": f"Model call failed: {type(exc).__name__}."}
+    except OutputTruncated as exc:
+        reply = exc.text
     return parse_priority(reply)
