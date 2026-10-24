@@ -340,3 +340,82 @@ reject an empty assistant message.
   and P6 tests still pass.
 - **Live test:** none for P7.
 - **Cost:** nothing; no model calls.
+
+---
+
+## P8: the Cardinal toolset
+
+All the work is in commit
+[`f5a9cea` "finish p8"](https://github.com/alfenn/assignment1-harness/commit/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f).
+The code is
+[`cs329z_hw1/agent/toolset.py`](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py),
+called from
+[`create_session`](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/session.py#L153-L162)
+in `cs329z_hw1/agent/session.py`. P8 has no live
+test; it was checked against `tests/test_cardinal.py` and by calling each tool
+by hand on the real archive with a fake `aux_lm`.
+
+### 1. Not reading the archive when a session is created
+
+**The task.** `run_agent_session(lm, None, config)` must register all ten
+tools without touching `data/emails/emails.jsonl`.
+
+**The decision.** One module-level `_EmailIndex`
+([lines 41–68](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py#L41-L68))
+loads the archive and builds
+the BM25 index on the first `search_emails`, `read_email` or `email_qa` call,
+under a lock. Every session in the process shares it, since the archive never
+changes and the live tests create many sessions.
+
+**The result.** The index over all 26,278 emails builds in about 1.8 s on the
+first search. Creating a session reads nothing.
+
+**Remediation.** None needed.
+
+### 2. Tools from later problems
+
+**The task.** All ten tools must be named in the system prompt now, before
+P9, P10 and P12 are done.
+
+**The decision.** `search_docs`, `read_doc`, `run_terminal`, `remember` and
+`recall` are registered with their final schemas and a short description, and
+for now raise `NotImplementedError`
+([`_not_yet`, line 115](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py#L115)),
+which the registry turns into a
+`tool_error`. `ask_user` already works (it calls `config.user.ask`). With no
+user, it raises, so the model gets a `tool_error` telling it to answer
+without asking.
+
+### 3. What the email tools show the model
+
+The two email formatters are
+[`_search_emails` (line 90)](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py#L90)
+and
+[`_read_email` (line 101)](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py#L101);
+the limits are constants at
+[lines 31–35](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py#L31-L35).
+
+- **`search_emails`** returns id, date, sender, the first five recipients,
+  the subject and the first 200 characters of the body, and caps `k` at 20.
+  These are pointers; the model calls `read_email` for the text.
+- **`read_email`** cuts the body at 8,000 characters (about 2,000 tokens).
+  Its schema is fixed and has no offset argument, so the rest of a very long
+  email can only be reached through `run_terminal` (P10).
+- **`email_qa`** and **`daily_digest`** run the P4 and P2 pipelines on
+  `aux_lm` (falling back to `lm` when `aux_lm` is None), as the spec requires.
+  `daily_digest` already classifies concurrently (16 workers, from P2).
+
+### 4. Explicit tool lists
+
+In
+[`extra_tools` (line 194)](https://github.com/alfenn/assignment1-harness/blob/f5a9cea283fcda2fbdf32fc9ebdbb6783648537f/cs329z_hw1/agent/toolset.py#L194),
+the listed tools come first, then `ask_user` if `config.user` is set, then
+`remember` and `recall` if `config.memory_dir` is set. If the list already
+contains one of those names, the listed tool wins.
+
+### Where P8 ended up
+
+- **Deterministic tests:** all 5 in `tests/test_cardinal.py` pass; P1–P7
+  still pass. The remaining failures are all in the P9–P15 test files.
+- **System prompt:** 1,410 tokens with all ten tools (`count_tokens`).
+- **Live test:** none for P8.
