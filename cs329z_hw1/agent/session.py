@@ -25,6 +25,7 @@ from cs329z_hw1.agent.protocol import (
     render_tools,
 )
 from cs329z_hw1.agent.registry import ToolRegistry
+from cs329z_hw1.agent.toolset import build_tools, extra_tools
 from cs329z_hw1.llm import OutputTruncated
 from cs329z_hw1.tokens import count_message_tokens, count_tokens
 from cs329z_hw1.types import AgentConfig, AgentResult, LMCallable, ToolResult, ToolSpec
@@ -152,6 +153,10 @@ class AgentSession:
 def create_session(
     lm: LMCallable, tools: Optional[list[ToolSpec]], config: AgentConfig
 ) -> AgentSession:
+    aux_lm = config.aux_lm if config.aux_lm is not None else lm
     if tools is None:
-        raise NotImplementedError("the Cardinal toolset is Problem 8 (cardinal)")
-    return AgentSession(lm, list(tools), config)
+        return AgentSession(lm, build_tools(config, aux_lm), config)
+    tools = list(tools)
+    listed = {t.name for t in tools}
+    tools += [t for t in extra_tools(config, aux_lm) if t.name not in listed]
+    return AgentSession(lm, tools, config)

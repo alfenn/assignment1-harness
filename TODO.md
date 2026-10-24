@@ -47,10 +47,10 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_agent_loop.py`](tests/test_agent_loop.py)
     - [x] Run: `uv run pytest tests/test_agent_loop.py`
     - Live: none (deterministic only)
-- [ ] **P8 cardinal** (2 pts) — `run_agent_session(lm, None, config)` registers all ten tools; build the email index lazily (no archive read at session creation); explicit tool lists get only those + `ask_user`/`remember`/`recall` when configured.
+- [x] **P8 cardinal** (2 pts) — `run_agent_session(lm, None, config)` registers all ten tools; build the email index lazily (no archive read at session creation); explicit tool lists get only those + `ask_user`/`remember`/`recall` when configured.
   - Reference: [`cs329z_hw1/cardinal.py`](cs329z_hw1/cardinal.py). Afterwards `uv run python -m cs329z_hw1.chat` works.
   - Test: [`tests/test_cardinal.py`](tests/test_cardinal.py)
-    - [ ] Run: `uv run pytest tests/test_cardinal.py`
+    - [x] Run: `uv run pytest tests/test_cardinal.py`
     - Live: none (deterministic only)
 - [ ] **P9 search_docs** (5 pts) — stub: [`run_build_doc_index`](cs329z_hw1/adapters.py#L344) / [`run_search_docs`](cs329z_hw1/adapters.py#L357) / [`run_read_doc`](cs329z_hw1/adapters.py#L374). Reuses bm25 logic over `data/docs/`; snippets/windows, not whole docs. Register the tools.
   - Suggested impl: `cs329z_hw1/pipelines/search_docs.py`.
