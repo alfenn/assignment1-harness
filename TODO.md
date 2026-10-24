@@ -15,11 +15,11 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_priority.py`](tests/test_priority.py), rubric: [`data/priority_rubric.md`](data/priority_rubric.md)
     - [x] Run: `uv run pytest tests/test_priority.py`
     - [x] Live: `uv run pytest tests/test_priority.py -m live -s`
-- [ ] **P2 daily_digest** (4 pts) — stub: [`run_daily_digest`](cs329z_hw1/adapters.py#L67). List of emails → LM summary; builds on P1.
+- [x] **P2 daily_digest** (4 pts) — stub: [`run_daily_digest`](cs329z_hw1/adapters.py#L67). List of emails → LM summary; builds on P1.
   - Suggested impl: `cs329z_hw1/pipelines/daily_digest.py`.
   - Test: [`tests/test_daily_digest.py`](tests/test_daily_digest.py)
-    - [ ] Run: `uv run pytest tests/test_daily_digest.py`
-    - [ ] Live: `uv run pytest tests/test_daily_digest.py -m live -s`
+    - [x] Run: `uv run pytest tests/test_daily_digest.py`
+    - [x] Live: `uv run pytest tests/test_daily_digest.py -m live -s`
 - [ ] **P3 bm25** (8 pts) — stub: [`run_bm25_build`](cs329z_hw1/adapters.py#L85) / [`run_bm25_search`](cs329z_hw1/adapters.py#L98) (k1=1.5, b=0.75, Lucene IDF). No LM calls.
   - Suggested impl: `cs329z_hw1/pipelines/bm25.py`. Try queries with `uv run python -m cs329z_hw1.show bm25 "larchfield audit"` (needed for P17).
   - Test: [`tests/test_bm25.py`](tests/test_bm25.py)
