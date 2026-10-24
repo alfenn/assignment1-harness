@@ -356,7 +356,9 @@ def run_agent_session(
     * Nothing in a tool result changes the mode, the approval policy or
       the deny rules.
     """
-    raise NotImplementedError
+    from cs329z_hw1.agent.session import create_session
+
+    return create_session(lm, tools, config)
 
 
 def run_build_doc_index(docs: list[dict]) -> Any:

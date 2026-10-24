@@ -42,10 +42,10 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_tool_protocol.py`](tests/test_tool_protocol.py)
     - [x] Run: `uv run pytest tests/test_tool_protocol.py`
     - [x] Live: `uv run pytest tests/test_tool_protocol.py -m live -s`
-- [ ] **P7 agent_loop** (8 pts) — stub: [`run_agent_session`](cs329z_hw1/adapters.py#L228) core loop: malformed-reply handling, turn/token budgets, transcript events.
+- [x] **P7 agent_loop** (8 pts) — stub: [`run_agent_session`](cs329z_hw1/adapters.py#L228) core loop: malformed-reply handling, turn/token budgets, transcript events.
   - Suggested impl: `cs329z_hw1/agent/session.py`.
   - Test: [`tests/test_agent_loop.py`](tests/test_agent_loop.py)
-    - [ ] Run: `uv run pytest tests/test_agent_loop.py`
+    - [x] Run: `uv run pytest tests/test_agent_loop.py`
     - Live: none (deterministic only)
 - [ ] **P8 cardinal** (2 pts) — `run_agent_session(lm, None, config)` registers all ten tools; build the email index lazily (no archive read at session creation); explicit tool lists get only those + `ask_user`/`remember`/`recall` when configured.
   - Reference: [`cs329z_hw1/cardinal.py`](cs329z_hw1/cardinal.py). Afterwards `uv run python -m cs329z_hw1.chat` works.
