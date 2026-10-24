@@ -212,3 +212,131 @@ runaway answer doesn't end a whole session.
   uncached runs.
 - **Cost:** about half a cent for all of P6's live testing
   (`uv run python -m cs329z_hw1.llm` prints the ledger).
+
+---
+
+## P7: the agent loop
+
+All the work is in commit
+[`7b1d9b2` "finish p7"](https://github.com/alfenn/assignment1-harness/commit/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa).
+The code is
+[`cs329z_hw1/agent/session.py`](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py),
+wired in through
+[`run_agent_session`](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/adapters.py#L359-L361).
+P7 has no live test, so everything below was checked only against the
+deterministic tests in `tests/test_agent_loop.py`. This section feeds memo Q3
+(the termination rule).
+
+### 1. Keeping the log apart from what the model sees
+
+**The task.** The tests read an append-only transcript of typed events
+(`user`, `assistant`, `tool_call`, `tool_result`, `error`). The model needs a
+list of `system`/`user`/`assistant` messages. Later problems (P11 compaction)
+will shrink what the model sees but must never change the transcript.
+
+**The decision.** `AgentSession` keeps two lists side by side: `transcript`
+(the log) and `_messages` (the model's context, without the system prompt).
+Each tool result or error is written to both, from the same string, so the
+`content` in the transcript is exactly what the model was shown, as the tests
+require. Tool results go back as user messages in P6's `<tool_result>` format.
+The system prompt is a short intro
+([line 35](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L35))
+plus P6's `render_tools` output, built once per session.
+
+**The result.** All 31 deterministic tests passed on the first run.
+
+**How often it came up.** Never; this was a design choice made up front, not a
+fix.
+
+**Remediation.** None needed. P11 only has to change how `_messages` is built
+for each call.
+
+### 2. When to stop
+
+**The task.** Each `send` has two budgets: `max_turns` model calls and
+`token_budget` tokens. The token total is `count_message_tokens(messages) +
+count_tokens(reply)`, summed over the send's calls. The spec says a final
+answer counts as done even if its call crossed the budget, and the tool call
+of the last allowed turn still runs.
+
+**The decision.** Both checks run only at the top of the loop, before a model
+call
+([lines 62–73](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L62-L73)):
+`max_turns` first, then `token_budget`. A plain-text reply returns `done`
+straight away
+([line 105](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L105)),
+so it is never overridden by a budget. A tool call on the last allowed turn
+runs, and the next pass through the loop stops. Budgets reset on every
+`send`; the conversation itself carries over.
+
+**The result.** The budget tests pass, including the one that measures the
+first call's size, sets a budget of about four calls and checks that the loop
+stops at exactly the right call.
+
+**How often it came up.** Never.
+
+**Remediation.** None needed.
+
+### 3. Malformed replies, including cut-off ones
+
+**The task.** Three malformed replies in a row end the send with status
+`malformed`. A reply counts as malformed if it can't be parsed, if the
+registry rejects the call as `unknown_tool` or `invalid_args`, or if the model
+was cut off at `max_tokens`. A `tool_error` or `denied` result doesn't count.
+
+**The decision.** One counter, reset by any well-formed call
+([lines 119–124](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L119-L124)).
+`OutputTruncated` is caught around the model call
+([line 79](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L79))
+and handled like a parse error: an `assistant` event holding whatever text the
+model had written, then an `error` event telling it to write a shorter reply.
+That closes P6 entry 6, where one runaway reply crashed a whole live test.
+Any other exception from `lm` (for example the test's `ScriptExhausted`)
+propagates, as the spec requires; exceptions inside tools are already turned
+into `tool_error` by the P5 registry.
+
+**The result.** All malformed-reply tests pass, including the mixed run of
+three different kinds and the counter reset after a good reply.
+
+**How often it came up.** Not yet seen live; P7 has no live test.
+
+**Remediation.** None needed so far.
+
+### 4. Empty strings
+
+**The task.** `AgentResult.text` must never be empty, and some providers
+reject an empty assistant message.
+
+**The decision.** Empty strings get placeholders:
+- an empty assistant message becomes `(empty reply)` in the model's context
+  only; the transcript keeps the raw reply
+  ([line 135](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L135));
+- an empty tool result becomes `(no output)` in both, so they still match
+  ([line 113](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L113));
+- an empty final answer becomes `(The model gave an empty answer.)`
+  ([line 106](https://github.com/alfenn/assignment1-harness/blob/7b1d9b2775e71a512f1ef2b0aa8a8f0251bcc7aa/cs329z_hw1/agent/session.py#L106)).
+
+**How often it came up.** Never in the deterministic tests.
+
+**Remediation.** None needed.
+
+### Open questions for later
+
+- **"I'll look that up." with no call is taken as the final answer.** P6
+  entry 2 showed the live model sometimes announces a call and stops. The loop
+  follows the spec's rule (a reply without a call is `done`) and has nothing
+  to catch this case. That's the core of memo Q3; if it shows up in P15's
+  simulations, a nudge ("you said you'd call a tool but didn't") would cost
+  one extra turn.
+- **An empty reply counts as `done`, not malformed.** P6 entry 4 suggested
+  retrying empty replies. The loop doesn't yet; the user would see the
+  placeholder answer from entry 4.
+- **`tools=None` still raises `NotImplementedError`.** The Cardinal toolset is
+  P8. `set_mode` only stores the mode until P13 adds approvals.
+
+### Where P7 ended up
+
+- **Deterministic tests:** all 31 in `tests/test_agent_loop.py` pass; the P5
+  and P6 tests still pass.
+- **Live test:** none for P7.
+- **Cost:** nothing; no model calls.
