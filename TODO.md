@@ -37,11 +37,11 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_tool_registry.py`](tests/test_tool_registry.py)
     - [x] Run: `uv run pytest tests/test_tool_registry.py`
     - Live: none (deterministic only)
-- [ ] **P6 tool_protocol** (4 pts) — stub: [`run_render_tools`](cs329z_hw1/adapters.py#L177), [`run_parse_response`](cs329z_hw1/adapters.py#L189), [`run_format_tool_call`](cs329z_hw1/adapters.py#L209). Text format for tool calls.
+- [x] **P6 tool_protocol** (4 pts) — stub: [`run_render_tools`](cs329z_hw1/adapters.py#L177), [`run_parse_response`](cs329z_hw1/adapters.py#L189), [`run_format_tool_call`](cs329z_hw1/adapters.py#L209). Text format for tool calls.
   - Suggested impl: `cs329z_hw1/agent/protocol.py`.
   - Test: [`tests/test_tool_protocol.py`](tests/test_tool_protocol.py)
-    - [ ] Run: `uv run pytest tests/test_tool_protocol.py`
-    - [ ] Live: `uv run pytest tests/test_tool_protocol.py -m live -s`
+    - [x] Run: `uv run pytest tests/test_tool_protocol.py`
+    - [x] Live: `uv run pytest tests/test_tool_protocol.py -m live -s`
 - [ ] **P7 agent_loop** (8 pts) — stub: [`run_agent_session`](cs329z_hw1/adapters.py#L228) core loop: malformed-reply handling, turn/token budgets, transcript events.
   - Suggested impl: `cs329z_hw1/agent/session.py`.
   - Test: [`tests/test_agent_loop.py`](tests/test_agent_loop.py)
