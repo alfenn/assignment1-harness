@@ -32,10 +32,10 @@ Problems are listed in handout order (Problem 1–17).
     - [x] Live: `uv run pytest tests/test_email_qa.py -m live -s`
 
 ## Part 2 — Cardinal Agent (`cs329z_hw1/agent/`)
-- [ ] **P5 tool_registry** (3 pts) — stub: [`run_tool_registry`](cs329z_hw1/adapters.py#L150). Schema validation/execute, no LM.
+- [x] **P5 tool_registry** (3 pts) — stub: [`run_tool_registry`](cs329z_hw1/adapters.py#L150). Schema validation/execute, no LM.
   - Suggested impl: `cs329z_hw1/agent/registry.py`.
   - Test: [`tests/test_tool_registry.py`](tests/test_tool_registry.py)
-    - [ ] Run: `uv run pytest tests/test_tool_registry.py`
+    - [x] Run: `uv run pytest tests/test_tool_registry.py`
     - Live: none (deterministic only)
 - [ ] **P6 tool_protocol** (4 pts) — stub: [`run_render_tools`](cs329z_hw1/adapters.py#L177), [`run_parse_response`](cs329z_hw1/adapters.py#L189), [`run_format_tool_call`](cs329z_hw1/adapters.py#L209). Text format for tool calls.
   - Suggested impl: `cs329z_hw1/agent/protocol.py`.
