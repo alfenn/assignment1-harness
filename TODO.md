@@ -25,11 +25,11 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_bm25.py`](tests/test_bm25.py)
     - [x] Run: `uv run pytest tests/test_bm25.py`
     - Live: none (deterministic only)
-- [ ] **P4 email_qa** (8 pts) — stub: [`run_email_qa`](cs329z_hw1/adapters.py#L119). Multi-hop (≤3 search calls) using the bm25-backed search.
+- [x] **P4 email_qa** (8 pts) — stub: [`run_email_qa`](cs329z_hw1/adapters.py#L119). Multi-hop (≤3 search calls) using the bm25-backed search.
   - Suggested impl: `cs329z_hw1/pipelines/email_qa.py`.
   - Test: [`tests/test_email_qa.py`](tests/test_email_qa.py)
-    - [ ] Run: `uv run pytest tests/test_email_qa.py`
-    - [ ] Live: `uv run pytest tests/test_email_qa.py -m live -s`
+    - [x] Run: `uv run pytest tests/test_email_qa.py`
+    - [x] Live: `uv run pytest tests/test_email_qa.py -m live -s`
 
 ## Part 2 — Cardinal Agent (`cs329z_hw1/agent/`)
 - [ ] **P5 tool_registry** (3 pts) — stub: [`run_tool_registry`](cs329z_hw1/adapters.py#L150). Schema validation/execute, no LM.
