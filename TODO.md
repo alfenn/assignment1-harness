@@ -20,10 +20,10 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_daily_digest.py`](tests/test_daily_digest.py)
     - [x] Run: `uv run pytest tests/test_daily_digest.py`
     - [x] Live: `uv run pytest tests/test_daily_digest.py -m live -s`
-- [ ] **P3 bm25** (8 pts) — stub: [`run_bm25_build`](cs329z_hw1/adapters.py#L85) / [`run_bm25_search`](cs329z_hw1/adapters.py#L98) (k1=1.5, b=0.75, Lucene IDF). No LM calls.
+- [x] **P3 bm25** (8 pts) — stub: [`run_bm25_build`](cs329z_hw1/adapters.py#L85) / [`run_bm25_search`](cs329z_hw1/adapters.py#L98) (k1=1.5, b=0.75, Lucene IDF). No LM calls.
   - Suggested impl: `cs329z_hw1/pipelines/bm25.py`. Try queries with `uv run python -m cs329z_hw1.show bm25 "larchfield audit"` (needed for P17).
   - Test: [`tests/test_bm25.py`](tests/test_bm25.py)
-    - [ ] Run: `uv run pytest tests/test_bm25.py`
+    - [x] Run: `uv run pytest tests/test_bm25.py`
     - Live: none (deterministic only)
 - [ ] **P4 email_qa** (8 pts) — stub: [`run_email_qa`](cs329z_hw1/adapters.py#L119). Multi-hop (≤3 search calls) using the bm25-backed search.
   - Suggested impl: `cs329z_hw1/pipelines/email_qa.py`.
