@@ -10,7 +10,12 @@ reply is a malformed reply (asked again; three in a row end the send). A
 reply whose last two sentences announce a tool step ("I'll check the
 policy."), or a first reply that says nothing was found or asks the user a
 question before any tool ran, gets a nudge back, up to ``MAX_NUDGES`` times
-per send, since the live model often says what it will do and stops.
+per send, since the live model often says what it will do and stops. So
+does a send whose user message asks for something to be kept ("remember",
+"for later", "when I say ...") but that ends without a ``remember`` call; if
+the request was explicit and the model still saved nothing, the harness
+saves the user's own words itself and says so in the answer
+(``memory.fallback_fact``).
 
 Two records are kept side by side:
 
@@ -56,7 +61,7 @@ from typing import Optional
 
 from cs329z_hw1.agent import guardrails, interactive
 from cs329z_hw1.agent.compaction import Compactor, fit_result
-from cs329z_hw1.agent.memory import MemoryStore
+from cs329z_hw1.agent.memory import ASKED_TO_REMEMBER, REMEMBER_NUDGE, MemoryStore, fallback_fact
 from cs329z_hw1.agent.protocol import (
     format_parse_error,
     format_tool_result,
@@ -72,7 +77,7 @@ from cs329z_hw1.types import AgentConfig, AgentResult, LMCallable, ParsedRespons
 
 MAX_MALFORMED = 3
 MALFORMED_STATUSES = ("unknown_tool", "invalid_args")
-MAX_NUDGES = 2  # per send: replies that announce a tool call without writing it
+MAX_NUDGES = 3  # per send: replies that announce a tool call without writing it
 
 # The last sentence of a reply that says it is about to use a tool ("I'll
 # check the policy.") rather than answering. "Let me know ..." is not one.
@@ -82,7 +87,8 @@ _ANNOUNCES_CALL = re.compile(
     r"|(?:I )?need to|(?:I )?need|next step:?)\s+"
     r"(?:now\s+|first\s+|quickly\s+|also\s+|go\s+(?:and\s+)?)?"
     r"(?:check|look|search|find|read|run|open|review|query|pull|get|fetch|try|verify|confirm|calculate|count"
-    r"|use|call|grab|see|start|dig|investigate|scan|examine|inspect|locate|consult|retrieve|compute|grep|list)\b"
+    r"|use|call|grab|see|start|dig|investigate|scan|examine|inspect|locate|consult|retrieve|compute|grep|list"
+    r"|remember|save|store|note)\b"
     r"|^(?:I['’]m |I am )?(?:now |still )?(?:checking|looking|searching|reading|running|reviewing|pulling"
     r"|fetching|opening|querying|retrieving)\s+(?:the|for|into|up|through|it|that|this|company|our)\b[^,]*$",
     re.IGNORECASE,
@@ -99,7 +105,7 @@ _CLAIMS_NOT_FOUND = re.compile(
     r"\b(?:couldn['\u2019]t|could not|can['\u2019]t|cannot|unable to|wasn['\u2019]t able to|not able to"
     r"|did not|didn['\u2019]t)\s+(?:\w+\s+){0,2}?"
     r"(?:find|locate|retrieve|access|see|determine|look|tell|answer|confirm|verify|check)\b"
-    r"|\bdon['\u2019]t know\b|\bno (?:search )?results\b|\bno (?:information|record|mention|reference|data)\b"
+    r"|\bdon['\u2019]t know\b|\b(?:don['\u2019]t|do not) have (?:enough |the |any )?(?:information|details|access)\b|\bno (?:search )?results\b|\bno (?:information|record|mention|reference|data)\b"
     r"|\bnot (?:available|found)\b",
     re.IGNORECASE,
 )
@@ -154,6 +160,8 @@ class AgentSession:
         malformed = 0
         nudges = 0
         called = False  # whether any tool call was made in this send
+        remembered = False  # whether remember ran (or was nudged for) in this send
+        saved = False  # whether a remember call succeeded in this send
 
         while True:
             if turns >= self.config.max_turns:
@@ -222,10 +230,18 @@ class AgentSession:
                     nudges += 1
                     self._add_error(NUDGE_NO_SEARCH)
                     continue
+                if nudges < MAX_NUDGES and self._should_have_remembered(remembered):
+                    nudges += 1
+                    remembered = True  # one memory nudge per send
+                    self._add_error(REMEMBER_NUDGE)
+                    continue
+                if self._should_have_remembered(saved):
+                    text += self._fallback_save()
                 return self._result(text, "done")
 
             call = parsed.tool_call
             called = True
+            remembered = remembered or call.name == "remember"
             self.transcript.append({"type": "tool_call", "name": call.name, "args": copy.deepcopy(call.args)})
             # Validate first: a call the registry rejects is never sent for approval.
             result = self.registry.validate(call.name, call.args)
@@ -249,6 +265,7 @@ class AgentSession:
             )
             self._append("user", format_tool_result(call.name, result), "tool")
 
+            saved = saved or (call.name == "remember" and result.status == "ok")
             if result.status in MALFORMED_STATUSES:
                 malformed += 1
                 if malformed >= MAX_MALFORMED:
@@ -267,6 +284,29 @@ class AgentSession:
         if rule is not None:
             return guardrails.deny_rule_denial(rule)
         return self._provenance.check(cmd, self._user_text())
+
+    def _should_have_remembered(self, remembered: bool) -> bool:
+        """The user asked for something to be kept and this send saved nothing."""
+        return (
+            not remembered
+            and "remember" in self.registry.names()
+            and self.config.memory_dir is not None
+            and ASKED_TO_REMEMBER.search(self._messages[self._current_user]["content"]) is not None
+        )
+
+    def _fallback_save(self) -> str:
+        """Save the user's own words when they asked for something to be kept
+        and the model saved nothing (the live model sometimes refuses work
+        identifiers as "sensitive"). Returns a note for the answer, or ''."""
+        fact = fallback_fact(self._messages[self._current_user]["content"])
+        if fact is None:
+            return ""
+        try:
+            guardrails.check_fact(fact)
+            reply = MemoryStore(self.config.memory_dir).remember(fact)
+        except (OSError, ValueError):
+            return ""
+        return "\n\n(Cardinal saved your message to memory, as you asked: " + reply.split("\n")[0] + ")"
 
     def _user_text(self) -> str:
         """Everything the user wrote this session: messages and ask_user answers."""
@@ -325,7 +365,7 @@ class AgentSession:
 def announces_call(text: str) -> bool:
     """True if the reply ends by announcing a step instead of answering."""
     text = re.sub(r"\([^()]*\)", " ", text).strip()  # asides like "(I'm ignoring it.)"
-    sentences = [x.strip() for x in re.split(r"(?<=[.!?:])\s+|[,;] so\s+|;\s+", text) if x.strip()]
+    sentences = [x.strip() for x in re.split(r"(?<=[.!?:])\s+|[,;] (?:so|but|and)\s+|;\s+", text) if x.strip()]
     return any(_ANNOUNCES_CALL.match(x) is not None for x in sentences[-2:])
 
 
