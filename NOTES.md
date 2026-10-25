@@ -581,3 +581,157 @@ the memo.
   network policy, so the 15/20 accuracy and 6,000-token requirements are
   unverified. TODO.md's P9 "Live" box is left unticked.
 - **Cost:** nothing; no model calls.
+
+---
+
+## P10: the terminal tool
+
+All the work is in commit
+[`040a5c3` "finish p10"](https://github.com/alfenn/assignment1-harness/commit/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd).
+The code is
+[`cs329z_hw1/agent/terminal.py`](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py),
+registered in
+[`build_tools` (line 274)](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/toolset.py#L274)
+of `cs329z_hw1/agent/toolset.py`, replacing P8's `_not_yet` stub.
+The live test (`-m live`, nine analysis questions plus one follow-up over the
+archive) was **not run**: this environment's network policy blocks
+openrouter.ai, so everything below was checked only against the deterministic
+tests and by calling the tool by hand on the real archive. This section feeds
+memo Q5 (the observation policy) and, through the saved files, Q6
+(compaction).
+
+### 1. Getting the status right without touching the registry
+
+**The task.** The result's status is `ok` only when the command ran and
+exited with 0; a non-zero exit, a timeout and a rejection are `tool_error`,
+and in all three the model must still see stdout, stderr, the exit code, or the
+sandbox's reason.
+
+**The decision.** The tool function returns the observation on exit 0 and
+otherwise raises `CommandFailed` with the same observation as its message
+([line 68](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L68),
+raised at [lines 148](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L148) and [168](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L168)).
+The P5 registry already turns any exception into `tool_error` with the
+message in the content
+([`registry.py` line 69](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/registry.py#L69)),
+so the registry and the loop are unchanged. A rejected command shows the
+sandbox's reason and "The command was not run (no exit code)"; a timed-out
+one shows the sandbox's "Timed out after N seconds; the command was killed."
+and whatever it printed before the kill.
+
+**The result.** The rejection, timeout and exit-code tests passed on the first
+run. The content starts with the registry's prefix
+(`Tool 'run_terminal' raised CommandFailed: exit code: 3 ...`), which is a
+little noisy but tells the model plainly that the command failed.
+
+**How often it came up.** Never; design choice.
+
+**Remediation.** None needed.
+
+### 2. The observation policy for large output
+
+**The task.** After a command that prints about 600,000 characters (150,000
+tokens), every model call must stay within `context_budget` (the tests use
+16,000 and 6,000, with the big command run twice), and the `tool_result`
+event must hold exactly what the model saw. P11 doesn't exist yet, so nothing
+else shrinks the context. The live test prints a 218,000-character listing and
+then asks about one line of it, so the rest of a cut output has to stay
+reachable.
+
+**The decision.** Head and tail plus a saved file, the OpenHands / Claude Code
+style:
+- Each observation gets an allowance of `context_budget // 8` tokens, clamped
+  to 300–2,000
+  ([`observation_chars`, line 75](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L75);
+  constants at [lines 44–50](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L44-L50)).
+  So one command can never use more than an eighth of the context, and the
+  default 16,000 budget gives about 2,000 tokens.
+- A stream that fits is shown in full, labelled with its size in lines and
+  characters. A longer one shows the first 60% and the last 40% of the
+  allowance, cut at line boundaries, with a marker saying how many characters
+  and lines were left out
+  ([`_stream`, line 115](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L115)).
+- The full stream is written to `.outputs/cmd-N.stdout.txt` in the workspace
+  ([`_save`, line 100](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L100)),
+  and the observation gives the exact `grep -n 'PATTERN' <file>` and
+  `sed -n 'A,Bp' <file>` commands to read the rest, starting at the first
+  line it left out. The file is written by our own code, not a subprocess, and
+  the model reads it back through the sandbox like any other file.
+- When both streams are long, stderr keeps at least a third of the allowance,
+  since it usually holds the error that matters
+  ([line 154](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L154)).
+
+We rejected the alternatives:
+- **Verbatim (mini-swe-agent).** Fails the budget at once.
+- **Head and tail only (Codex).** Loses the middle for good, so the live
+  follow-up about one line of a big listing could only be answered by
+  rerunning the command.
+- **Summarize with `aux_lm`.** Costs a model call for every big output, and a
+  summary can drop exactly the line the next question asks about.
+
+The saved file also helps P11: an old terminal result can be dropped from the
+context because its content is still on disk.
+
+**The result.** The 624,000-character table becomes an 827-token observation
+at budget 6,000 and 2,075 tokens at 16,000 (the header adds a little over the
+nominal allowance). `sed -n '5000,5002p' .outputs/cmd-2.stdout.txt`
+returns the right rows. Both parametrized large-output tests pass.
+
+**How often it came up.** Never; design choice.
+
+**Remediation.** None needed. One known cost: every cut stream leaves a file
+in the workspace (600 KB for the test table), and nothing deletes them. With
+the sandbox's default workspace they go away when the process exits; with a
+configured workspace they stay.
+
+### 3. A tool description that stops rejected commands
+
+**The task.** The handout warns that the models write here-documents unless the
+description tells them not to, and the sandbox rejects those.
+
+**The decision.** The description
+([`DESCRIPTION`, line 52](https://github.com/alfenn/assignment1-harness/blob/040a5c3c5b6e34b0285bba99b45f9d29e33c48fd/cs329z_hw1/agent/terminal.py#L52))
+names the workspace's contents and the email record's keys (so the model
+doesn't have to run `head` first to find out), lists the allowed programs
+from `sandbox.ALLOWED_PROGRAMS`, says what is rejected (paths, `X=1 cmd`,
+`$(...)`, backticks, `<<`) and to use `python3 -c '...'`, and tells the
+model to print only what it needs and use the saved file for the rest.
+
+**The result.** The system prompt with all ten tools went from 1,410 to 1,759
+tokens. P11's 4,000-token tests use the seven fixture tools, not this
+toolset, so this doesn't affect them; P15's budget is 16,000.
+
+**How often it came up.** Not measurable without the live test.
+
+**Remediation.** None yet. If the live run shows rejected commands, the
+rejection reason the model gets back already says what was wrong.
+
+### 4. A trap for counting questions
+
+**The task.** Live question t01 asks how many emails have a `date` in June
+2001 (answer 11,382).
+
+**The decision.** None; this is the model's job, not the tool's.
+
+**The result.** By hand, `grep -c 2001-06 emails.jsonl` gives 11,384,
+because the string also appears in some subjects or bodies. A model that greps
+instead of parsing the JSON will be off by two.
+
+**How often it came up.** Seen once, by hand.
+
+**Remediation.** None in code. If the live run misses this, the description
+could say to parse each line with `json.loads` and test fields rather than
+grepping the raw lines.
+
+### Where P10 ended up
+
+- **Deterministic tests:** all 9 in `tests/test_terminal.py` pass (1 live
+  test deselected). Full suite: 259 passed, 28 failed (was 251/36); every
+  failure is in the P11–P15 files (compaction, memory, interactive,
+  guardrails, sim_eval). P1–P9 still pass.
+- **Live test:** not run. openrouter.ai is blocked by this environment's
+  network policy, so the 8-of-10 accuracy and the per-call budget check on
+  real commands are unverified. TODO.md's P10 "Live" box is left unticked.
+- **Sandbox:** `sandbox.jail()` is `"none"` in this environment, so only the
+  allowlist, the scrubbed environment and the timeout apply here (memo Q9).
+- **Cost:** nothing; no model calls.
