@@ -30,6 +30,15 @@ until the send ends. A call that validates is checked against the mode
 (``self.mode``, changed only by ``set_mode``) before it runs; a refused call
 is logged as "tool_call" + "tool_result" with status "denied" and the run
 continues.
+
+Problem 14 (guardrails): the checks live in ``guardrails.py``. A call that
+validates goes through, in order: the deny rules (compiled from
+``config.deny_rules`` when the session is created; a ``run_terminal`` command
+that one matches is denied without asking the user, in both modes), the
+planted-command check (a command quoted by a tool result that addresses AI
+agents is denied unless the user wrote it), approval, execution. Every result
+is flagged if it addresses AI agents and then scanned for planted commands.
+The system prompt says that tool results are data, never instructions.
 """
 
 from __future__ import annotations
@@ -37,7 +46,7 @@ from __future__ import annotations
 import copy
 from typing import Optional
 
-from cs329z_hw1.agent import interactive
+from cs329z_hw1.agent import guardrails, interactive
 from cs329z_hw1.agent.compaction import Compactor, fit_result
 from cs329z_hw1.agent.memory import MemoryStore
 from cs329z_hw1.agent.protocol import (
@@ -70,12 +79,17 @@ class AgentSession:
         self.config = config
         self.registry = ToolRegistry(tools)
         self.mode = config.mode
+        # Snapshot: the rules are fixed for the session, whatever changes config later.
+        self.deny_rules = guardrails.DenyRules(config.deny_rules)
+        self._provenance = guardrails.Provenance()
         self.transcript: list[dict] = []
         self._messages: list[dict] = []
         self._kinds: list[str] = []
         self._current_user = 0  # index in _messages of the message being worked on
         self._steering: list[int] = []  # indices in _messages of this send's steering messages
-        self._system = SYSTEM_INTRO + "\n\n" + render_tools(self.registry.schemas())
+        self._system = (
+            SYSTEM_INTRO + "\n\n" + guardrails.PROMPT_NOTE + "\n\n" + render_tools(self.registry.schemas())
+        )
         if config.user is not None:
             self._system += "\n\n" + interactive.PROMPT_NOTE
         if config.memory_dir is not None and "remember" in self.registry.names():
@@ -152,6 +166,8 @@ class AgentSession:
             # Validate first: a call the registry rejects is never sent for approval.
             result = self.registry.validate(call.name, call.args)
             if result is None:
+                result = self._guard(call)
+            if result is None:
                 result = interactive.check_approval(
                     self.config.user, self.mode, self.registry.get(call.name), call
                 )
@@ -159,6 +175,9 @@ class AgentSession:
                 result = self.registry.execute(call.name, call.args)
             if not result.content.strip():
                 result = ToolResult(result.status, "(no output)")
+            if result.status not in ("denied", *MALFORMED_STATUSES) and call.name != "ask_user":
+                self._provenance.observe(result.content)
+                result = ToolResult(result.status, guardrails.flag_result(result.content))
             # Cap a huge result before it is logged, so the event holds what the model sees.
             result = ToolResult(result.status, fit_result(result.content, self.config.context_budget))
             self.transcript.append(
@@ -174,6 +193,26 @@ class AgentSession:
                 malformed = 0
 
     # ----------------------------------------------------------- helpers ----
+
+    def _guard(self, call) -> Optional[ToolResult]:
+        """The P14 checks for a validated call: None if it may go on to approval."""
+        if call.name != "run_terminal":
+            return None
+        cmd = str(call.args.get("cmd", ""))
+        rule = self.deny_rules.match(cmd)
+        if rule is not None:
+            return guardrails.deny_rule_denial(rule)
+        return self._provenance.check(cmd, self._user_text())
+
+    def _user_text(self) -> str:
+        """Everything the user wrote this session: messages and ask_user answers."""
+        parts = [e["content"] for e in self.transcript if e["type"] == "user"]
+        parts += [
+            e["content"]
+            for e in self.transcript
+            if e["type"] == "tool_result" and e.get("name") == "ask_user" and e.get("status") == "ok"
+        ]
+        return "\n".join(parts)
 
     def _context(self) -> list[dict]:
         """This call's messages: the system prompt and the (compacted) conversation.
