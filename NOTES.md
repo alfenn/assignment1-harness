@@ -1539,3 +1539,26 @@ Facts already in a store are not re-checked when the prompt block is built.
   the harness notes cost answers is unknown. TODO.md's P14 "Live" box is left
   unticked.
 - **Cost:** nothing; no model calls.
+
+---
+
+## P15: the simulated-user evaluation
+
+P15 adds no code; it evaluates the agent built in P1–P14.
+
+- **Deterministic test:** `test_scripted_persona_conversation` already passed
+  after P13, because its persona only needs the confirm-mode approval flow
+  (it denies a `write_note` call). Full suite: 287 passed, 0 failed.
+  TODO.md's P15 "Run" box is ticked.
+- **Live evaluation:** not run. openrouter.ai (and PyPI, so `uv sync`) are
+  blocked by this environment's network policy, so the 20 conversations, the
+  `runs/` record the submission needs, and the per-persona memory stores
+  (`python -m cs329z_hw1.show memory`, memo Q7) don't exist yet. None of the
+  live tests for P9–P14 have run either, so the first live run should be
+  each problem's own live test, then the slice (`CS329Z_EVAL_SLICE=3`),
+  then the full 20.
+- **Things to watch on the first live run**, collected from the open items
+  above: an "I'll look that up." reply with no call ending a task (P7); t01's
+  `grep -c` trap (P10); whether the model calls `remember` in session 1 (P12);
+  whether it repeats a denied call (P13); and whether the extra guardrail
+  prompt text costs answers (P14).

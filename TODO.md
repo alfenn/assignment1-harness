@@ -70,7 +70,7 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_memory.py`](tests/test_memory.py)
     - [x] Run: `uv run pytest tests/test_memory.py`
     - [ ] Live: `uv run pytest tests/test_memory.py -m live -s`
-- [ ] **P13 interactive** (7 pts) — confirm vs. auto mode, `ask_user`, approval flow, steering via `pending_message`, inside `run_agent_session`.
+- [x] **P13 interactive** (7 pts) — confirm vs. auto mode, `ask_user`, approval flow, steering via `pending_message`, inside `run_agent_session`.
   - Reference: [`cs329z_hw1/user.py`](cs329z_hw1/user.py)
   - Test: [`tests/test_interactive.py`](tests/test_interactive.py)
     - [x] Run: `uv run pytest tests/test_interactive.py`
@@ -82,7 +82,7 @@ Problems are listed in handout order (Problem 1–17).
 - [ ] **P15 sim_eval** (10 pts) — exercise everything via `cs329z_hw1/simulation`; keep the final run in `runs/`.
   - Reference: [`cs329z_hw1/simulation/`](cs329z_hw1/simulation), personas: [`tests/fixtures/personas/`](tests/fixtures/personas)
   - Test: [`tests/test_sim_eval.py`](tests/test_sim_eval.py)
-    - [ ] Run: `uv run pytest tests/test_sim_eval.py`
+    - [x] Run: `uv run pytest tests/test_sim_eval.py`
     - [ ] Live: `uv run pytest tests/test_sim_eval.py -m live -s`
 
 ## Write-ups
