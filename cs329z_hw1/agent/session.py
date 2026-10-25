@@ -8,9 +8,15 @@ row) stops it.
 Two records are kept side by side:
 
 * ``transcript``: the append-only event log the tests read.
-* ``_messages``: the conversation as the model sees it (user/assistant
+* ``_messages``: the whole conversation in the model's format (user/assistant
   messages, without the system prompt). Tool results and parse errors are
   sent back as user messages, using the strings stored in the transcript.
+  ``_kinds`` says what each message is (user, assistant, tool, error).
+
+Problem 11 (compaction): neither list is ever shortened. Each model call's
+messages are built by ``Compactor.build`` (``compaction.py``), which shows
+the model a shortened view when the full conversation would exceed
+``config.context_budget``.
 """
 
 from __future__ import annotations
@@ -18,6 +24,7 @@ from __future__ import annotations
 import copy
 from typing import Optional
 
+from cs329z_hw1.agent.compaction import Compactor, fit_result
 from cs329z_hw1.agent.protocol import (
     format_parse_error,
     format_tool_result,
@@ -37,14 +44,23 @@ SYSTEM_INTRO = """You are Cardinal, a helpful assistant for the employees of a c
 
 
 class AgentSession:
-    def __init__(self, lm: LMCallable, tools: list[ToolSpec], config: AgentConfig):
+    def __init__(
+        self,
+        lm: LMCallable,
+        tools: list[ToolSpec],
+        config: AgentConfig,
+        aux_lm: Optional[LMCallable] = None,
+    ):
         self.lm = lm
         self.config = config
         self.registry = ToolRegistry(tools)
         self.mode = config.mode
         self.transcript: list[dict] = []
         self._messages: list[dict] = []
+        self._kinds: list[str] = []
+        self._current_user = 0  # index in _messages of the message being worked on
         self._system = SYSTEM_INTRO + "\n\n" + render_tools(self.registry.schemas())
+        self.compactor = Compactor(aux_lm or lm, config.context_budget, self._system)
 
     # ------------------------------------------------------------ public ----
 
@@ -73,7 +89,7 @@ class AgentSession:
                     "token_budget",
                 )
 
-            messages = [{"role": "system", "content": self._system}] + self._messages
+            messages = self._context()
             turns += 1
             try:
                 reply = self.lm(messages)
@@ -112,10 +128,12 @@ class AgentSession:
             self.transcript.append({"type": "tool_call", "name": call.name, "args": copy.deepcopy(call.args)})
             if not result.content.strip():
                 result = ToolResult(result.status, "(no output)")
+            # Cap a huge result before it is logged, so the event holds what the model sees.
+            result = ToolResult(result.status, fit_result(result.content, self.config.context_budget))
             self.transcript.append(
                 {"type": "tool_result", "name": call.name, "status": result.status, "content": result.content}
             )
-            self._messages.append({"role": "user", "content": format_tool_result(call.name, result)})
+            self._append("user", format_tool_result(call.name, result), "tool")
 
             if result.status in MALFORMED_STATUSES:
                 malformed += 1
@@ -126,18 +144,29 @@ class AgentSession:
 
     # ----------------------------------------------------------- helpers ----
 
+    def _context(self) -> list[dict]:
+        """This call's messages: the system prompt and the (compacted) conversation.
+        The current user message and the newest message are never compacted."""
+        protected = {self._current_user, len(self._messages) - 1}
+        return self.compactor.build(self._messages, self._kinds, protected)
+
+    def _append(self, role: str, content: str, kind: str) -> None:
+        self._messages.append({"role": role, "content": content})
+        self._kinds.append(kind)
+
     def _add_user(self, content: str) -> None:
         self.transcript.append({"type": "user", "content": content})
-        self._messages.append({"role": "user", "content": content})
+        self._current_user = len(self._messages)
+        self._append("user", content, "user")
 
     def _add_assistant(self, content: str) -> None:
         self.transcript.append({"type": "assistant", "content": content})
         # Some providers reject an empty assistant message.
-        self._messages.append({"role": "assistant", "content": content or "(empty reply)"})
+        self._append("assistant", content or "(empty reply)", "assistant")
 
     def _add_error(self, content: str) -> None:
         self.transcript.append({"type": "error", "content": content})
-        self._messages.append({"role": "user", "content": content})
+        self._append("user", content, "error")
 
     def _malformed_stop(self) -> AgentResult:
         return self._result(
@@ -155,8 +184,8 @@ def create_session(
 ) -> AgentSession:
     aux_lm = config.aux_lm if config.aux_lm is not None else lm
     if tools is None:
-        return AgentSession(lm, build_tools(config, aux_lm), config)
+        return AgentSession(lm, build_tools(config, aux_lm), config, aux_lm)
     tools = list(tools)
     listed = {t.name for t in tools}
     tools += [t for t in extra_tools(config, aux_lm) if t.name not in listed]
-    return AgentSession(lm, tools, config)
+    return AgentSession(lm, tools, config, aux_lm)
