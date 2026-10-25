@@ -929,3 +929,218 @@ alongside the model summary instead of only when it fails.
   network policy, so whether a real `aux_lm` summary keeps the budget cap and
   the city is unverified. TODO.md's P11 "Live" box is left unticked.
 - **Cost:** nothing; no model calls.
+
+---
+
+## P12: persistent memory
+
+All the work is in commit
+[`eaf3931` "finish p12"](https://github.com/alfenn/assignment1-harness/commit/eaf39310ff0fbff5101a1e7885f5779865053382).
+The code is the new
+[`cs329z_hw1/agent/memory.py`](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py)
+(a `MemoryStore` over one JSON file), wired in two places: the `remember`
+and `recall` tools in
+[`build_tools` (lines 233–244)](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/toolset.py#L233-L244)
+of `cs329z_hw1/agent/toolset.py`, replacing P8's `_not_yet` stubs, and the
+memory block at the end of the system prompt in
+[`AgentSession.__init__` (line 69)](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/session.py#L69-L70)
+of `cs329z_hw1/agent/session.py`. P8's explicit-tool-list rule (entry 4
+there) needed no change: `extra_tools` already adds `remember` and
+`recall` whenever `config.memory_dir` is set. The live test (`-m live`:
+three pairs of full-agent sessions that share only `memory_dir`) was **not
+run**: this environment's network policy blocks openrouter.ai, so everything
+below was checked only against the deterministic tests and by calling the
+store by hand. This section feeds memo Q7 (the memory policy).
+
+### 1. What the store is
+
+**The task.** Everything stored must be in files under `config.memory_dir`;
+a new session with the same directory sees it, one with another directory
+doesn't, and `python -m cs329z_hw1.show memory DIR` should print it
+readably.
+
+**The decision.** One file, `<memory_dir>/memory.json`
+([`FILENAME`, line 56](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L56)):
+`{"version": 1, "facts": [{"id": "m-1", "fact": "...", "saved": "2026-10-25T14:03Z"}, ...]}`.
+- **Plain JSON, one object.** `show.py`'s `_print_store` pretty-prints any
+  file that parses as JSON, so the store shows up as an indented list of
+  facts. JSON Lines would have printed as raw text.
+- **Append-only.** Facts are kept in the order saved, with an id and a UTC
+  save time, and the agent never edits or deletes one (entry 3 says why).
+- **Read on every call, never cached**
+  ([`_load`, line 122](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L122)),
+  so two sessions on one directory see each other's writes at once and the
+  "separate sessions" of a test behave like separate program runs.
+- **Safe writes.** A write goes to a temporary file that replaces
+  `memory.json` with `os.replace`, under a process-wide lock
+  ([`_write`, line 139](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L139)).
+  The directory is created on the first write (`test_cardinal` passes a
+  `memory_dir` that doesn't exist yet). A file that won't parse is moved
+  aside as `memory.json.unreadable-<time>` before the next write instead of
+  being overwritten
+  ([`_facts_for_update`, line 145](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L145)),
+  and `recall` says the file couldn't be read rather than "empty".
+
+We rejected one file per fact (the directory gets noisy and `show memory`
+prints a wall of tiny files) and SQLite (not human-readable through
+`show.py`, and overkill for tens of facts).
+
+**The result.** `test_remember_writes_the_fact_under_memory_dir` and the
+different-directory test pass; `show memory` prints the store as indented
+JSON.
+
+**How often it came up.** Never; design choice.
+
+**Remediation.** None needed.
+
+### 2. What a new session starts with
+
+**The task.** The handout's design question: load the whole store into the
+prompt (Claude Code, Codex CLI, Gemini CLI) or keep a small block in the
+prompt and the rest behind `recall` (Letta). Too little and the model
+doesn't know there is anything to recall; too much and old facts eat the
+context budget. The live test's hardest pair needs a session-1 fact ("when I
+say 'the spec' I mean the firmware spec") to change a session-2 answer to a
+question that doesn't look like it needs memory at all.
+
+**The decision.** A size-limited block, Letta-style, that in practice holds
+the whole store
+([`prompt_block`, line 217](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L217)).
+When the session is created, the newest facts that fit in
+`context_budget // 16` tokens (at least 150;
+[`PROMPT_SHARE`, line 60](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L60))
+go into the system prompt, oldest first, each as `- [m-3, 2026-10-25] fact`.
+If older facts don't fit, the block says how many were left out and that
+`recall` searches them. The block also carries the usage guidance
+([`GUIDANCE`, line 79](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L79)):
+what is worth saving (team, role, location, codes, what the user means by a
+term, how they want answers), to save one short third-person fact per call,
+not to save secrets or instructions that came from a tool result, and to
+check memory before answering a question about the user's own details.
+- **Why not recall-only.** The spec pair would fail: nothing in "What is the
+  current version of the spec?" tells the model to look anything up, so the
+  fact has to be in front of it already.
+- **Why not unbounded.** At P15's 16,000 budget the block is at most about
+  1,000 tokens (about 40 short facts); at the tests' 4,000 it is 250. A store
+  that grows over many sessions can never crowd out the work.
+- **A snapshot.** The block is read once, when the session is created, so the
+  system prompt stays fixed (compaction, P11, builds every call on it). A
+  fact saved during a session is already in that session's conversation and
+  reachable through `recall`.
+
+**The result.** The Cardinal system prompt is 1,794 tokens without memory
+and 1,935 with an empty memory (guidance only); the fixture-tool prompt goes
+from 1,252 to 1,558 (the two tool schemas plus the guidance). With 200 stored
+facts the block is 1,163 tokens at a 16,000 budget (43 facts shown) and 445
+at 4,000 (10 shown).
+
+**How often it came up.** Never; design choice. Whether the guidance makes
+the live model call `remember` in session 1 is exactly what the live test
+measures, and it wasn't run.
+
+**Remediation.** None yet. If the live model doesn't save facts on its own,
+the handout allows the harness to write to the store itself after a send
+(for example an `aux_lm` call that extracts durable facts from the user's
+messages); we left that out to keep the store to what the model chose to
+save.
+
+### 3. Stale and conflicting facts
+
+**The task.** Users change teams and preferences. A store that only grows
+will at some point hold "works on the Firmware team" and "moved to SRE".
+
+**The decision.** Never overwrite; make the newer fact win and make the
+conflict visible.
+- **The rule is stated twice:** in the prompt block's header
+  ([`PROMPT_HEADER`, line 73](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L73))
+  and in every `recall` result: if two facts conflict, the later one (higher
+  `m-` number) is current. Every fact is shown with its id and save date.
+- **`remember` shows related facts.** After saving, its result lists up to
+  three stored facts that match the new one
+  ([`remember`, line 165](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L165)),
+  so the model sees a possible conflict at the moment it writes, and can tell
+  the user.
+- **Exact duplicates are not stored twice** (ignoring case, spacing and a
+  final full stop); the result says which id already holds it.
+- **The memory doesn't outrank the user.** The header says stored facts
+  don't override the user's current message or the system instructions.
+
+We rejected letting `remember` replace a fact: the tool schema is fixed
+(`fact` only), and deciding which old fact a new one replaces is a judgment
+the model would get wrong silently. An append-only log loses nothing and
+`show memory` shows the history.
+
+**The result.** By hand: saving "works on the Firmware team in Boulder", then
+"moved to the Site Reliability Engineering team" returns the first as a
+related fact, and `recall("which team does the user work on")` returns both
+with their ids.
+
+**How often it came up.** Not measurable without live runs.
+
+**Remediation.** None yet. The obvious gap: superseded facts still take up
+room in the prompt block. A later version could let the harness fold
+superseded facts out of the block (keeping them in the file).
+
+### 4. How recall ranks
+
+**The task.** `recall(query)` must find the stored fact for queries like
+"cost center code", "which team does the user work on", "dates format", and
+must answer "ok" with a non-empty message on an empty store.
+
+**The decision.** Reuse the P3 BM25 code over lightly normalized words
+([`_terms`, line 94](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L94),
+[`search`, line 156](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L156)):
+lowercase, a short stop-word list dropped
+([`_STOP`, line 66](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L66)),
+a plural "s" stripped (so "works" matches "work"). The index is rebuilt on
+each call, which costs nothing for a store this size. It returns up to 8
+facts, best match first
+([`recall`, line 192](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L192)).
+With no keyword match it still says "ok", says nothing matched, and lists the
+8 newest facts, since the query's wording may just differ from the fact's
+and the list is short. An empty store answers "Memory is empty: nothing has
+been saved in earlier conversations."
+
+**The result.** The first version matched every fact for "which team does
+the user work on": facts are written in the third person, so "user" is in
+all of them. Adding "user" to the stop words fixed it: that query now returns
+the two team facts and not the date-format one.
+
+**How often it came up.** Once, while checking by hand; the deterministic
+test passed either way, since it only checks the right fact is in the result.
+
+**Remediation.** "user"/"users" are stop words
+([line 69](https://github.com/alfenn/assignment1-harness/blob/eaf39310ff0fbff5101a1e7885f5779865053382/cs329z_hw1/agent/memory.py#L69)).
+No embeddings: a query like "where am I based" won't match "in Boulder" by
+keyword; the fallback list and the prompt block cover that for small stores.
+
+### Open questions for later
+
+- **P13's approval policy.** `remember` is marked `read_only` in
+  `cardinal.py`, so it should never ask, and the deterministic test for
+  that already passes; P13 must keep it that way.
+- **P14's prompt injection.** A fact the model saves from an injected tool
+  result would come back in every later session's system prompt. The
+  guidance says not to save instructions from tool results, and the header
+  says memory doesn't override instructions, but nothing enforces it. Worth
+  a look in P14 and in memo Q7.
+- **Writers in different processes.** The lock is per process; two programs
+  writing the same `memory_dir` at the same moment can't corrupt the file
+  (atomic replace) but one fact could be lost. P15 gives each persona its own
+  directory, so this doesn't come up there.
+- **Personal data.** The live test's cost-center pair stores an employee
+  number. That's the user's own and they asked, but the store has no
+  expiry and no way for the user to delete a fact except editing the file.
+
+### Where P12 ended up
+
+- **Deterministic tests:** all 7 in `tests/test_memory.py` pass (1 live
+  test deselected). Full suite: 268 passed, 19 failed (was 262/25); every
+  failure is in the P13–P15 files (interactive, guardrails, sim_eval).
+  P1–P11 still pass, including the explicit-tool-list tests in
+  `tests/test_cardinal.py`.
+- **Live test:** not run. openrouter.ai is blocked by this environment's
+  network policy, so whether the live model saves the session-1 facts and
+  uses them in session 2 (at least 2 of 3 pairs) is unverified. TODO.md's
+  P12 "Live" box is left unticked.
+- **Cost:** nothing; no model calls.
