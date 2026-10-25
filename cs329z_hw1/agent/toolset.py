@@ -12,10 +12,12 @@ process (it takes a few seconds and the archive never changes).
 The document tools (P9) work the same way: the index over ``data/docs/`` is
 built the first time ``search_docs`` or ``read_doc`` runs, and shared.
 
-Tools from later problems (run_terminal, remember, recall) are registered
-already, so the model and the tests see all ten; until
-their problem is done, calling one raises, which the registry turns into a
-``tool_error``.
+``run_terminal`` (P10) lives in ``terminal.py``: it runs every command through
+``sandbox.run_terminal`` and applies the observation policy described there.
+
+Tools from later problems (remember, recall) are registered already, so the
+model and the tests see all ten; until their problem is done, calling one
+raises, which the registry turns into a ``tool_error``.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ import threading
 from typing import Optional
 
 from cs329z_hw1 import data
+from cs329z_hw1.agent import terminal
 from cs329z_hw1.cardinal import CARDINAL_TOOLS, cardinal_spec
 from cs329z_hw1.pipelines import bm25
 from cs329z_hw1.pipelines import search_docs as docsearch
@@ -268,10 +271,7 @@ def build_tools(config: AgentConfig, aux_lm: LMCallable) -> list[ToolSpec]:
             "start a few lines before the matched line to see its context.",
             _read_doc,
         ),
-        "run_terminal": (
-            "Run one shell command in a sandboxed workspace that holds emails.jsonl and docs/.",
-            _not_yet("Problem 10"),
-        ),
+        "run_terminal": (terminal.DESCRIPTION, terminal.make_run_terminal(config)),
         "remember": (
             "Save a fact about the user or their preferences to persistent memory.",
             _not_yet("Problem 12"),

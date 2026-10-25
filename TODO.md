@@ -60,7 +60,7 @@ Problems are listed in handout order (Problem 1–17).
 - [ ] **P10 terminal** (6 pts) — wire `run_terminal` tool to `sandbox.run_terminal` (timeout/rejection/non-zero exit, observation policy for large output), inside `run_agent_session`.
   - Reference: [`cs329z_hw1/sandbox.py`](cs329z_hw1/sandbox.py), [`cs329z_hw1/cardinal.py`](cs329z_hw1/cardinal.py)
   - Test: [`tests/test_terminal.py`](tests/test_terminal.py)
-    - [ ] Run: `uv run pytest tests/test_terminal.py`
+    - [x] Run: `uv run pytest tests/test_terminal.py`
     - [ ] Live: `uv run pytest tests/test_terminal.py -m live -s`
 - [ ] **P11 compaction** (8 pts) — keep every model call under `context_budget`, summarize via `aux_lm`, inside `run_agent_session`.
   - Test: [`tests/test_compaction.py`](tests/test_compaction.py)
