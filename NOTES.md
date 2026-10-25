@@ -1251,6 +1251,82 @@ test passed either way, since it only checks the right fact is in the result.
 No embeddings: a query like "where am I based" won't match "in Boulder" by
 keyword; the fallback list and the prompt block cover that for small stores.
 
+### 5. The live run: "I'll remember that" and "employee numbers are sensitive"
+
+The live test first ran in a later session, after the network block was
+lifted. The fixes are in commit
+[`c659762` "fix p12 live: ..."](https://github.com/alfenn/assignment1-harness/commit/c65976210b6f2376575bde4a59d98c9e65a1b897).
+
+**The task.** Pass `uv run pytest tests/test_memory.py -m live -s`: at least
+2 of 3 pairs, where session 2 can only answer from what session 1 saved.
+
+**The decision.** Entry 2's guidance in the prompt block, and nothing else:
+the store held only what the model chose to save.
+
+**The result.** The first (cached) run passed at exactly **2/3**, and two
+uncached runs after a guidance tweak scored 1/3 and 0/3. The model saved
+facts with `remember` in some runs and not in others, and failed in three
+ways:
+- **It refused the cost-center pair as sensitive data** ("I can't save that
+  information because it includes an employee number, which is sensitive
+  personal data."), even though the user asked ("Please keep this for
+  later: my cost center is CC-8812 and my employee number is 40417."). This
+  happened in 5 of 6 uncached tries of that pair. Entry 2's "do not save
+  passwords or other secrets" may have encouraged it; rewording the guidance
+  to say work identifiers are fine (below) did not stop it.
+- **It said "I'll remember that ..." and called nothing** (the-spec and
+  my-team, about half the uncached session-1 runs). The P9 nudge (P9 entry 6)
+  didn't fire because "remember" wasn't one of its verbs.
+- **It said there was no memory tool** ("this conversation does not provide
+  an active memory-saving tool"): P6 entry 3 again, with `remember` in the
+  tool list.
+
+Session 2 worked whenever the fact was saved: the memory block put "the user
+means the firmware spec" in front of the model, and it searched for the
+firmware spec, not the API spec, every time. So entry 2's choice (facts in
+the prompt rather than behind `recall`) held up; the weak step was saving.
+
+**How often it came up.** In session 1, nothing was saved in about half of
+the uncached tries across the three pairs.
+
+**Remediation.** Three layers, cheapest first:
+- **Guidance** ([`GUIDANCE`, memory line 80](https://github.com/alfenn/assignment1-harness/blob/c65976210b6f2376575bde4a59d98c9e65a1b897/cs329z_hw1/agent/memory.py#L80)): when the
+  user asks to keep something, save it; a cost center, employee number or
+  project code is the user's own and fine; only credentials are off-limits.
+- **A memory nudge** ([`ASKED_TO_REMEMBER` and `REMEMBER_NUDGE`, memory lines
+  95–110](https://github.com/alfenn/assignment1-harness/blob/c65976210b6f2376575bde4a59d98c9e65a1b897/cs329z_hw1/agent/memory.py#L95-L110); [`_should_have_remembered`, session line
+  288](https://github.com/alfenn/assignment1-harness/blob/c65976210b6f2376575bde4a59d98c9e65a1b897/cs329z_hw1/agent/session.py#L288)). If the user's message asks for something to be
+  kept ("remember", "for later", "for future conversations", "when I say")
+  and the send is about to end without a `remember` call, the model gets one
+  `no_call` note: nothing was saved, the tool is available and persistent,
+  call it now, with an example block whose fact is a placeholder (an example
+  with a real-looking value could be copied into the store). "remember",
+  "save", "store" and "note" were added to P9's announcement verbs, and
+  `MAX_NUDGES` went from 2 to 3 ([session line 80](https://github.com/alfenn/assignment1-harness/blob/c65976210b6f2376575bde4a59d98c9e65a1b897/cs329z_hw1/agent/session.py#L80)).
+- **The harness saves the user's own words when the model won't**
+  ([`fallback_fact`, memory line 120](https://github.com/alfenn/assignment1-harness/blob/c65976210b6f2376575bde4a59d98c9e65a1b897/cs329z_hw1/agent/memory.py#L120); [`_fallback_save`,
+  session line 297](https://github.com/alfenn/assignment1-harness/blob/c65976210b6f2376575bde4a59d98c9e65a1b897/cs329z_hw1/agent/session.py#L297)). Only for an explicit request
+  ("keep this for later", "from now on", "when I say"), not a question ("do
+  you remember ...?"), and never when the message mentions a password, key,
+  token or PIN. The fact is the message quoted ("The user asked to keep this
+  for later conversations, in their words: ..."), run through P14's
+  `check_fact`, and the answer gets a note, "(Cardinal saved your message to
+  memory, as you asked: Saved as m-1. ...)", so the user isn't told "I can't
+  save that" while it was in fact saved. This is the option entry 2 left out;
+  it costs no model call and keeps the user's exact words, like P11's
+  fallback summary. It is the harness overriding the model's judgment, which
+  is the right call only because the user asked in so many words; memo Q7
+  should say so.
+
+**Final scores.** Graded (cached) pass **3/3**; two uncached runs of the test
+3/3 and 3/3; three probe runs with the test's own config 3/3, 2/3, 3/3. The
+remaining miss is my-team in one seed, where session 1 saved the team but
+session 2 answered "I don't have enough information to identify your team's
+manager." and then announced a search three times without writing it.
+
+**Cost.** $0.017 for the test's calls (174 agent calls, 4 summary calls) and
+$0.003 for probes, about two cents.
+
 ### Open questions for later
 
 - **P13's approval policy.** `remember` is marked `read_only` in
@@ -1276,11 +1352,9 @@ keyword; the fallback list and the prompt block cover that for small stores.
   failure is in the P13–P15 files (interactive, guardrails, sim_eval).
   P1–P11 still pass, including the explicit-tool-list tests in
   `tests/test_cardinal.py`.
-- **Live test:** not run. openrouter.ai is blocked by this environment's
-  network policy, so whether the live model saves the session-1 facts and
-  uses them in session 2 (at least 2 of 3 pairs) is unverified. TODO.md's
-  P12 "Live" box is left unticked.
-- **Cost:** nothing; no model calls.
+- **Live test:** 3/3 graded and on two uncached runs, after the entry 5
+  fixes (2/3, 1/3, 0/3 before). TODO.md's P12 boxes are ticked.
+- **Cost:** about two cents of live calls (entry 5).
 
 ---
 
