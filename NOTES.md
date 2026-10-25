@@ -813,18 +813,44 @@ instead of parsing the JSON will be off by two.
 could say to parse each line with `json.loads` and test fields rather than
 grepping the raw lines.
 
+### 5. The live run
+
+The live test first ran in a later session, after the network block was
+lifted, on top of P9's loop fixes (P9 entry 6). It passed with no change to
+the terminal code; the TODO tick is commit
+[`b1829bf` "p10 live passes"](https://github.com/alfenn/assignment1-harness/commit/b1829bf13741e99fb870ccbeccdd508d090616e9).
+
+**The result.** **10/10** on the graded (cached) pass and 10/10 on each of
+two uncached runs with every `LM` salted (30 of 30). Every question was
+answered with one command, and the follow-up with one more.
+- **t01's grep trap (entry 4) never fired.** In all three runs the model
+  parsed each line, `json.loads(line)["date"][:7] == "2001-06"`, and answered
+  11,382. The description's list of the record's keys and its
+  `python3 -c '...'` advice seem to be enough; no change needed.
+- **The big listing (t09)** went through the observation policy as designed:
+  the 6,931-line output was cut to head and tail, and the follow-up about
+  line 6201 was answered from the saved file, with every call within the
+  16,000-token budget.
+- **No rejected commands** in any run: no here-documents, no `$(...)`.
+
+**How often it came up.** Never.
+
+**Remediation.** None needed.
+
+**Cost.** $0.006 for the three runs (68 calls including the extra probes
+that printed the commands).
+
 ### Where P10 ended up
 
 - **Deterministic tests:** all 9 in `tests/test_terminal.py` pass (1 live
   test deselected). Full suite: 259 passed, 28 failed (was 251/36); every
   failure is in the P11–P15 files (compaction, memory, interactive,
   guardrails, sim_eval). P1–P9 still pass.
-- **Live test:** not run. openrouter.ai is blocked by this environment's
-  network policy, so the 8-of-10 accuracy and the per-call budget check on
-  real commands are unverified. TODO.md's P10 "Live" box is left unticked.
+- **Live test:** 10/10 graded and 10/10 on two uncached runs (entry 5).
+  TODO.md's P10 boxes are ticked.
 - **Sandbox:** `sandbox.jail()` is `"none"` in this environment, so only the
   allowlist, the scrubbed environment and the timeout apply here (memo Q9).
-- **Cost:** nothing; no model calls.
+- **Cost:** under a cent of live calls (entry 5).
 
 ---
 
