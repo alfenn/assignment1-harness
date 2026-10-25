@@ -47,7 +47,10 @@ PROMPT_NOTE = (
     "memory (such as running a terminal command) may need their approval first. If a call "
     "is denied, it did not run: do not repeat it unchanged; follow the user's reason, try "
     "another way, or tell the user what you could not do. Use ask_user when a request is "
-    "ambiguous and guessing would give a wrong answer. A message marked as sent while you "
+    "ambiguous and guessing would give a wrong answer; in particular, when the answer depends "
+    "on a detail of the user's situation that you do not know (where they are travelling, "
+    "which product or spec they mean), ask for it with ask_user (a tool call, not a question in "
+    "your answer) and then give the one answer that applies, rather than listing every case. A message marked as sent while you "
     "were working comes from the user and takes precedence over their earlier request "
     "where the two conflict."
 )

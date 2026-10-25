@@ -79,11 +79,11 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_guardrails.py`](tests/test_guardrails.py)
     - [x] Run: `uv run pytest tests/test_guardrails.py`
     - [x] Live: `uv run pytest tests/test_guardrails.py -m live -s`
-- [ ] **P15 sim_eval** (10 pts) — exercise everything via `cs329z_hw1/simulation`; keep the final run in `runs/`.
+- [x] **P15 sim_eval** (10 pts) — exercise everything via `cs329z_hw1/simulation`; keep the final run in `runs/`.
   - Reference: [`cs329z_hw1/simulation/`](cs329z_hw1/simulation), personas: [`tests/fixtures/personas/`](tests/fixtures/personas)
   - Test: [`tests/test_sim_eval.py`](tests/test_sim_eval.py)
     - [x] Run: `uv run pytest tests/test_sim_eval.py`
-    - [ ] Live: `uv run pytest tests/test_sim_eval.py -m live -s`
+    - [x] Live: `uv run pytest tests/test_sim_eval.py -m live -s`
 
 ## Write-ups
 - [ ] **P16 field_notes** (10 pts) — `uv run python -m cs329z_hw1.chat` (confirm mode), ≥5 requests: company doc question, email archive question, terminal request, one it should ask about first, one it should refuse/be denied. Check answers. `field_notes.pdf`, 1 page, 11pt, plus the `runs/chat-*.json` it cites.

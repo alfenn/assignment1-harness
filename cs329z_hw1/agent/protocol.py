@@ -18,6 +18,7 @@ decode and is reported as an error.
 from __future__ import annotations
 
 import json
+import re
 from typing import Any, Optional
 
 from cs329z_hw1.types import ParsedResponse, ToolCall, ToolResult
@@ -206,6 +207,28 @@ def repeated_call(text: str) -> Optional[ToolCall]:
     return first
 
 
+# The model's own native call syntax leaking into the text:
+# "[tool_call] to=search_docs json\n{...}\n</tool_call>".
+_NATIVE = re.compile(r"\bto=(?:functions\.)?([A-Za-z_][\w-]*)[^{\n]*\n?\s*(?=\{)")
+
+
+def _native_call(text: str, close: int) -> Optional[ParsedResponse]:
+    """A call written as ``to=NAME`` and an args object right before CLOSE."""
+    m = _NATIVE.search(text, 0, close)
+    if m is None:
+        return None
+    try:
+        args, end = _DECODER.raw_decode(text, m.end())
+    except Exception:
+        return None
+    if not isinstance(args, dict) or _skip_ws(text, end) != close:
+        return None
+    before = text[: m.start()].strip().removesuffix("[tool_call]").strip()
+    rest = text[close + len(CLOSE) :].strip()
+    call = ToolCall(name=m.group(1), args=args)
+    return ParsedResponse(text="\n\n".join(p for p in (before, rest) if p), tool_call=call)
+
+
 def _parse_without_open_tag(text: str) -> ParsedResponse:
     """A reply with no OPEN tag is plain text, unless it ends with a complete
     call object followed by CLOSE: the live model sometimes drops the opening
@@ -213,6 +236,9 @@ def _parse_without_open_tag(text: str) -> ParsedResponse:
     close = text.find(CLOSE)
     if close == -1 or text.find(CLOSE, close + 1) != -1:
         return ParsedResponse(text=text.strip())
+    native = _native_call(text, close)
+    if native is not None:
+        return native
     i = text.find("{")
     while i != -1 and i < close:
         try:

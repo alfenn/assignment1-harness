@@ -117,17 +117,29 @@ EXPLICIT_REMEMBER = re.compile(
 _CREDENTIAL = re.compile(r"\b(?:password|passcode|passphrase|api[ _-]?key|secret|token|PIN)\b", re.IGNORECASE)
 
 
-def fallback_fact(message: str) -> Optional[str]:
+# A message that corrects something the user said earlier.
+CORRECTION = re.compile(
+    r"\b(?:correct(?:ion|ed)?|mistake|mistyped|typo|swapped|wrong|actually|instead|not \S+\d)\b",
+    re.IGNORECASE,
+)
+
+
+def fallback_fact(message: str, correcting: bool = False) -> Optional[str]:
     """The fact the harness saves itself when the user explicitly asked for
     something to be kept and the model saved nothing: the user's own words,
-    quoted. None if the message is not such a request, is a question, or
-    mentions a credential."""
+    quoted. With ``correcting`` (the harness already saved a fact for the
+    user in this session), a message that corrects an earlier one is saved
+    the same way, so the newer fact wins. None if the message is neither,
+    is a question, or mentions a credential."""
     text = " ".join(message.split())
-    if not EXPLICIT_REMEMBER.search(text) or text.endswith("?") or _CREDENTIAL.search(text):
+    wanted = EXPLICIT_REMEMBER.search(text) or (correcting and CORRECTION.search(text))
+    if not wanted or text.endswith("?") or _CREDENTIAL.search(text):
         return None
     limit = MAX_FACT_CHARS - 60
     if len(text) > limit:
         text = text[:limit].rsplit(" ", 1)[0] + " ..."
+    if not EXPLICIT_REMEMBER.search(text):
+        return f'The user corrected an earlier fact, in their words: "{text}"'
     return f'The user asked to keep this for later conversations, in their words: "{text}"'
 
 

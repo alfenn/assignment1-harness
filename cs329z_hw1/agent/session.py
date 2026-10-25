@@ -6,14 +6,15 @@ plain text or a limit (max_turns, token_budget, three malformed replies in a
 row) stops it.
 
 Two kinds of reply without a call are not taken as the answer. An empty
-reply is a malformed reply (asked again; three in a row end the send). A
-reply whose last two sentences announce a tool step ("I'll check the
-policy."), or a first reply that says nothing was found or asks the user a
-question before any tool ran, gets a nudge back, up to ``MAX_NUDGES`` times
-per send, since the live model often says what it will do and stops. So
-does a send whose user message asks for something to be kept ("remember",
-"for later", "when I say ...") but that ends without a ``remember`` call; if
-the request was explicit and the model still saved nothing, the harness
+reply is logged and the same messages are sent again (``MAX_EMPTY`` per
+send). A reply whose first or last two sentences announce a tool step
+("I'll check the policy."), or a first reply that says nothing was found or
+asks the user a question before any tool ran, gets a nudge back, up to
+``MAX_NUDGES`` times per send, since the live model often says what it will
+do and stops. So does a send whose user message asks for something to be
+kept ("remember", "for later", "when I say ...") but that ends without a
+``remember`` call; if the request was explicit (or corrects what the harness
+saved earlier in the session) and the model still saved nothing, the harness
 saves the user's own words itself and says so in the answer
 (``memory.fallback_fact``).
 
@@ -61,7 +62,7 @@ from typing import Optional
 
 from cs329z_hw1.agent import guardrails, interactive
 from cs329z_hw1.agent.compaction import Compactor, fit_result
-from cs329z_hw1.agent.memory import ASKED_TO_REMEMBER, REMEMBER_NUDGE, MemoryStore, fallback_fact
+from cs329z_hw1.agent.memory import ASKED_TO_REMEMBER, CORRECTION, REMEMBER_NUDGE, MemoryStore, fallback_fact
 from cs329z_hw1.agent.protocol import (
     format_parse_error,
     format_tool_result,
@@ -77,26 +78,27 @@ from cs329z_hw1.types import AgentConfig, AgentResult, LMCallable, ParsedRespons
 
 MAX_MALFORMED = 3
 MALFORMED_STATUSES = ("unknown_tool", "invalid_args")
+MAX_EMPTY = 4  # per send: empty replies, each asked again with the same messages
 MAX_NUDGES = 3  # per send: replies that announce a tool call without writing it
 
-# The last sentence of a reply that says it is about to use a tool ("I'll
-# check the policy.") rather than answering. "Let me know ..." is not one.
+# A sentence that says the agent is about to do something ("I'll check the
+# policy.", "Let me search.", "Need read section.", "Searching the docs for
+# ...") rather than answering. "Let me know ...", "I'll be ..." are not.
 _ANNOUNCES_CALL = re.compile(
     r"^(?:(?:ok(?:ay)?|sure|next|now|first|then|so)[,.!]?\s+)*"
-    r"(?:I['’]ll(?: need to| have to)?|I will(?: need to)?|I am going to|I['’]m going to|let me"
-    r"|(?:I )?need to|(?:I )?need|next step:?)\s+"
-    r"(?:now\s+|first\s+|quickly\s+|also\s+|go\s+(?:and\s+)?)?"
-    r"(?:check|look|search|find|read|run|open|review|query|pull|get|fetch|try|verify|confirm|calculate|count"
-    r"|use|call|grab|see|start|dig|investigate|scan|examine|inspect|locate|consult|retrieve|compute|grep|list"
-    r"|remember|save|store|note)\b"
+    r"(?:I['’]ll|I will|I am going to|I['’]m going to|let me|let['’]s|(?:I |we )?need to|(?:I |we )?need"
+    r"|we should|we['’]ll|next step:?)\s+"
+    r"(?!know\b|be\b|keep (?:that|this|it) in mind\b|let you know\b|use (?:that|this|it)\b)\w+"
     r"|^(?:I['’]m |I am )?(?:now |still )?(?:checking|looking|searching|reading|running|reviewing|pulling"
-    r"|fetching|opening|querying|retrieving)\s+(?:the|for|into|up|through|it|that|this|company|our)\b[^,]*$",
+    r"|fetching|opening|querying|retrieving|extracting|counting)\s+(?:the|for|into|up|through|it|that|this"
+    r"|company|our)\b[^,]*$",
     re.IGNORECASE,
 )
 NUDGE = (
     "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no "
-    "<tool_call> block, so no tool ran and the user has no answer yet. Write the tool call now, or, "
-    "if you already have what you need, write the final answer itself.\n</tool_result>"
+    "<tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in "
+    "your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\n"
+    "Write that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
 )
 
 # A first reply that says nothing was found, written before any tool ran.
@@ -104,7 +106,8 @@ NUDGE = (
 _CLAIMS_NOT_FOUND = re.compile(
     r"\b(?:couldn['\u2019]t|could not|can['\u2019]t|cannot|unable to|wasn['\u2019]t able to|not able to"
     r"|did not|didn['\u2019]t)\s+(?:\w+\s+){0,2}?"
-    r"(?:find|locate|retrieve|access|see|determine|look|tell|answer|confirm|verify|check)\b"
+    r"(?:find|locate|retrieve|access|see|determine|look|tell|answer|confirm|verify|check|give|provide)\b"
+    r"|\bwithout (?:checking|searching|looking|running)\b|\bhaven['\u2019]t (?:searched|checked|run|looked)\b"
     r"|\bdon['\u2019]t know\b|\b(?:don['\u2019]t|do not) have (?:enough |the |any )?(?:information|details|access)\b|\bno (?:search )?results\b|\bno (?:information|record|mention|reference|data)\b"
     r"|\bnot (?:available|found)\b",
     re.IGNORECASE,
@@ -114,7 +117,7 @@ NUDGE_NO_SEARCH = (
     "has been searched. Use the tools to look it up before saying it cannot be found or asking the user what they mean.\n</tool_result>"
 )
 
-SYSTEM_INTRO = """You are Cardinal, a helpful assistant for the employees of a company. Work step by step: call a tool when you need information or need to act, read its result, and continue until you can answer. Base your answers on what the tools return; do not invent facts. Search before asking the user what they mean: when the question names something the tools can look up, look it up first, and ask only if the results leave it unclear. When a result says the detail you need is in another document (for example "see the Benefits Summary"), search for that document and read it before you answer. When you are done, reply in plain text with your final answer."""
+SYSTEM_INTRO = """You are Cardinal, a helpful assistant for the employees of a company. You answer by using tools: when a request needs information from the company documents, the email archive, memory or the terminal, your reply is a tool call, not a description of what you will do. Read each result and continue until you can answer. Base your answers on what the tools return; do not invent facts. Search before asking the user what they mean: when the question names something the tools can look up, look it up first, and ask only if the results leave it unclear. When a result says the detail you need is in another document (for example "see the Benefits Summary"), search for that document and read it before you answer. A newer policy or announcement sets the rule from its start date onward until a later document changes it: a change that applies "starting with" a year also applies to every later year, so apply the newest rule to the user's case and state it as the rule, even if the document does not name their year. When you are done, reply in plain text with your final answer."""
 
 
 class AgentSession:
@@ -137,6 +140,7 @@ class AgentSession:
         self._kinds: list[str] = []
         self._current_user = 0  # index in _messages of the message being worked on
         self._steering: list[int] = []  # indices in _messages of this send's steering messages
+        self._fallback_saved = False  # whether the harness saved a fact for the user (_fallback_save)
         self._system = (
             SYSTEM_INTRO + "\n\n" + guardrails.PROMPT_NOTE + "\n\n" + render_tools(self.registry.schemas())
         )
@@ -159,6 +163,7 @@ class AgentSession:
         spent = 0
         malformed = 0
         nudges = 0
+        empties = 0
         called = False  # whether any tool call was made in this send
         remembered = False  # whether remember ran (or was nudged for) in this send
         saved = False  # whether a remember call succeeded in this send
@@ -216,10 +221,10 @@ class AgentSession:
             if parsed.tool_call is None:
                 text = parsed.text or reply.strip()
                 if not text:
-                    # Empty replies are not cached by the LM wrapper, so asking again gets a fresh one.
-                    malformed += 1
-                    self._add_error(format_parse_error("your reply was empty. Call a tool or write your answer"))
-                    if malformed >= MAX_MALFORMED:
+                    # Empty replies are not cached by the LM wrapper, so the same
+                    # messages, unchanged, get a fresh sample.
+                    empties += 1
+                    if empties >= MAX_EMPTY:
                         return self._result("(The model gave an empty answer.)", "done")
                     continue
                 if nudges < MAX_NUDGES and announces_call(text):
@@ -286,19 +291,25 @@ class AgentSession:
         return self._provenance.check(cmd, self._user_text())
 
     def _should_have_remembered(self, remembered: bool) -> bool:
-        """The user asked for something to be kept and this send saved nothing."""
+        """The user asked for something to be kept, or corrected what the
+        harness saved for them earlier in this session, and this send saved
+        nothing."""
+        message = self._messages[self._current_user]["content"]
         return (
             not remembered
             and "remember" in self.registry.names()
             and self.config.memory_dir is not None
-            and ASKED_TO_REMEMBER.search(self._messages[self._current_user]["content"]) is not None
+            and (
+                ASKED_TO_REMEMBER.search(message) is not None
+                or (self._fallback_saved and CORRECTION.search(message) is not None)
+            )
         )
 
     def _fallback_save(self) -> str:
         """Save the user's own words when they asked for something to be kept
         and the model saved nothing (the live model sometimes refuses work
         identifiers as "sensitive"). Returns a note for the answer, or ''."""
-        fact = fallback_fact(self._messages[self._current_user]["content"])
+        fact = fallback_fact(self._messages[self._current_user]["content"], self._fallback_saved)
         if fact is None:
             return ""
         try:
@@ -306,6 +317,7 @@ class AgentSession:
             reply = MemoryStore(self.config.memory_dir).remember(fact)
         except (OSError, ValueError):
             return ""
+        self._fallback_saved = True
         return "\n\n(Cardinal saved your message to memory, as you asked: " + reply.split("\n")[0] + ")"
 
     def _user_text(self) -> str:
@@ -344,8 +356,11 @@ class AgentSession:
 
     def _add_assistant(self, content: str) -> None:
         self.transcript.append({"type": "assistant", "content": content})
-        # Some providers reject an empty assistant message.
-        self._append("assistant", content or "(empty reply)", "assistant")
+        # An empty reply is logged but left out of the model's context: some
+        # providers reject an empty assistant message, and a placeholder such
+        # as "(empty reply)" gets copied by the model as its next answer.
+        if content.strip():
+            self._append("assistant", content, "assistant")
 
     def _add_error(self, content: str) -> None:
         self.transcript.append({"type": "error", "content": content})
@@ -365,8 +380,9 @@ class AgentSession:
 def announces_call(text: str) -> bool:
     """True if the reply ends by announcing a step instead of answering."""
     text = re.sub(r"\([^()]*\)", " ", text).strip()  # asides like "(I'm ignoring it.)"
-    sentences = [x.strip() for x in re.split(r"(?<=[.!?:])\s+|[,;] (?:so|but|and)\s+|;\s+", text) if x.strip()]
-    return any(_ANNOUNCES_CALL.match(x) is not None for x in sentences[-2:])
+    parts = re.split(r"(?<=[.!?:])\s+|[,;] (?:so|but|and)\s+|;\s+", text)
+    sentences = [re.sub(r"^[\W_]+", "", x) for x in parts if x.strip()]  # drop leading "***", "- "
+    return any(_ANNOUNCES_CALL.match(x) is not None for x in sentences[:1] + sentences[-2:])
 
 
 def create_session(
