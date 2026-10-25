@@ -571,16 +571,106 @@ the memo.
 
 **Remediation.** Leave the real enforcement to P14.
 
+### 6. The live run: the model announced searches and stopped
+
+The live test first ran in a later session, after the network block was
+lifted. The fixes are in commit
+[`3f11736` "fix p9 live: ..."](https://github.com/alfenn/assignment1-harness/commit/3f11736a0aa33da05e35e3d1d47526b7b4305c96),
+in the agent loop, not in the retrieval code.
+
+**The task.** Pass `uv run pytest tests/test_search_docs.py -m live -s`: at
+least 15 of 20 questions right, and at most 6,000 tokens of `search_docs` and
+`read_doc` results per conversation.
+
+**The decision.** P7's rule: a reply with no call is the final answer. P7's
+open questions predicted the failure below and left it alone.
+
+**The result.** The first run scored **10/20**. Retrieval was never the
+problem: every question the model actually searched for, it answered. The ten
+misses came from five different ways of stopping without a call:
+- **It announced a call and stopped** (6 of 10): "I'll check the company's
+  current policy documents for the hybrid schedule." (d14, d15, d18, d19,
+  d20), and d16 after one search: "I found a newer announcement ... I'll check
+  its details to confirm the current amount."
+- **An empty reply** (3 of 10: d07, d12, d13), shown to the user as P7's
+  placeholder "(The model gave an empty answer.)".
+- **A clarifying question before any search** (d04: "Could you clarify which
+  unit or currency you mean by 'price per meter per month'?").
+
+After the first fix, three more ways showed up in uncached runs:
+- **Terse notes to itself**: "Need read policy section." (d02).
+- **The opening tag dropped**: `{"name":"read_doc",...}\n</tool_call>` with
+  no `<tool_call>` (d16), so the parser returned the whole thing as text.
+- **The same call written three times in one reply**, with reasoning leaking
+  between the copies ("(analysis) We have to exact block."), three replies in a
+  row, so the send ended as `malformed` (d11). P6 entry 5 saw this once
+  (req-19); here it ended a conversation.
+- **"I couldn't find it" before any search** (d09: "I couldn't find the
+  EmberOS error code in the available company documents", with 0 tool calls).
+
+**How often it came up.** 10 of 20 on the first run; after the nudge alone,
+5 of 20 (15/20, exactly the threshold).
+
+**Remediation.** Three changes to the loop and one to the parser:
+- **Nudge instead of finishing**
+  ([`announces_call`, session line 325](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/session.py#L325);
+  [patterns, lines 75–109](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/session.py#L75-L109);
+  [loop, lines 217–224](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/session.py#L217-L224)).
+  A reply with no call is sent back with a short `no_call` note ("Your last
+  reply said what you would do next but contained no <tool_call> block, so no
+  tool ran ...") if either of its last two sentences announces a step ("I'll
+  check", "Let me search", "Need read", "Searching the company docs for ...",
+  "..., so I'll look for that document"), or if no tool has run yet in this
+  send and the reply says nothing was found or ends with a question. At most
+  two nudges per send (`MAX_NUDGES`), so a model that really means its text
+  as the answer still gets to give it. "Let me know if ..." is not an
+  announcement. The nudge is an `error` event, which the transcript already
+  allows.
+- **An empty reply is malformed**
+  ([line 210](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/session.py#L210)): the model is told its reply was empty and
+  asked again. The LM wrapper doesn't cache empty replies, so the retry is a
+  fresh sample. This closes P6 entry 4 and P7's second open question.
+- **Repeated identical calls run once**
+  ([`repeated_call`, protocol line 190](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/protocol.py#L190);
+  [session line 199](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/session.py#L199)). `parse_response` still reports two
+  blocks as an error (the P6 tests require it, including two copies of the
+  same call), but the loop checks whether every block is the same complete
+  call and, if so, runs it once. Two different calls are still malformed.
+- **A call with no opening tag is accepted**
+  ([`_parse_without_open_tag`, protocol line 209](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/protocol.py#L209))
+  when the reply ends with a complete `{"name": ...}` object right before
+  `</tool_call>`. A prefix of a well-formed reply can never look like this
+  (it would include the opening tag), so the truncation tests are unaffected.
+- **Two sentences in the system prompt**
+  ([`SYSTEM_INTRO`, line 111](https://github.com/alfenn/assignment1-harness/blob/3f11736a0aa33da05e35e3d1d47526b7b4305c96/cs329z_hw1/agent/session.py#L111)): look things up before
+  asking what the user means, and when a result points to another document
+  ("see the Benefits Summary"), read that document before answering. The
+  second is for d20, where the model stopped at "the allowance is listed in
+  the Benefits Summary" without opening it.
+
+**Final scores.** The graded (cached) pass: **20/20**, at most 1,412 and on
+average 675 result tokens per conversation (limit 6,000). Uncached runs with
+`LM(salt=...)` after the final change: 19, 19, 19 and 18 of 20 (95 of 100
+over five runs including the graded one). All five superseded-policy
+questions (entry 3) were right in the graded run, so the dates in the results
+and the "later document wins" header were enough; no index-time labelling
+was needed. The misses left are one-offs: a clarifying question after the
+two nudges were used up (d18), $350 instead of $500 for the on-call stipend
+(d16, the superseded value), and d20 still stopping at the Benefits Summary
+pointer in one run.
+
+**Cost.** $0.017 for the live test's own calls and $0.041 for the uncached
+probe runs (446 calls), so about six cents for P9.
+
 ### Where P9 ended up
 
 - **Deterministic tests:** all 36 in `tests/test_search_docs.py` pass (1 live
   test deselected). Full suite: 251 passed, 36 failed (was 215/72); every
   failure is in the P10–P15 files (terminal, compaction, memory, interactive,
   guardrails, sim_eval). P1–P8 still pass.
-- **Live test:** not run. openrouter.ai is blocked by this environment's
-  network policy, so the 15/20 accuracy and 6,000-token requirements are
-  unverified. TODO.md's P9 "Live" box is left unticked.
-- **Cost:** nothing; no model calls.
+- **Live test:** 20/20 on the graded run, 18–19/20 uncached, at most 1,412
+  result tokens per conversation (entry 6). TODO.md's P9 boxes are ticked.
+- **Cost:** about $0.06 of live calls, all in entry 6.
 
 ---
 
