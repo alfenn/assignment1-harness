@@ -73,7 +73,7 @@ Problems are listed in handout order (Problem 1–17).
 - [ ] **P13 interactive** (7 pts) — confirm vs. auto mode, `ask_user`, approval flow, steering via `pending_message`, inside `run_agent_session`.
   - Reference: [`cs329z_hw1/user.py`](cs329z_hw1/user.py)
   - Test: [`tests/test_interactive.py`](tests/test_interactive.py)
-    - [ ] Run: `uv run pytest tests/test_interactive.py`
+    - [x] Run: `uv run pytest tests/test_interactive.py`
     - Live: none (deterministic only)
 - [ ] **P14 guardrails** (4 pts) — deny-rule regex checks on terminal commands, prompt injection, inside `run_agent_session`.
   - Test: [`tests/test_guardrails.py`](tests/test_guardrails.py)

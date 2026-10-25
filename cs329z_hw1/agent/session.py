@@ -22,6 +22,14 @@ Problem 12 (memory): when the session has the ``remember`` tool and
 ``config.memory_dir`` is set, the system prompt ends with the memory block
 (``MemoryStore.prompt_block``): how to use memory, and the newest stored
 facts that fit, read once when the session is created.
+
+Problem 13 (interactive): the policy lives in ``interactive.py``. Before
+every model call the loop polls ``config.user.pending_message()`` once; a
+steering message becomes a "user" event and stays protected from compaction
+until the send ends. A call that validates is checked against the mode
+(``self.mode``, changed only by ``set_mode``) before it runs; a refused call
+is logged as "tool_call" + "tool_result" with status "denied" and the run
+continues.
 """
 
 from __future__ import annotations
@@ -29,6 +37,7 @@ from __future__ import annotations
 import copy
 from typing import Optional
 
+from cs329z_hw1.agent import interactive
 from cs329z_hw1.agent.compaction import Compactor, fit_result
 from cs329z_hw1.agent.memory import MemoryStore
 from cs329z_hw1.agent.protocol import (
@@ -65,7 +74,10 @@ class AgentSession:
         self._messages: list[dict] = []
         self._kinds: list[str] = []
         self._current_user = 0  # index in _messages of the message being worked on
+        self._steering: list[int] = []  # indices in _messages of this send's steering messages
         self._system = SYSTEM_INTRO + "\n\n" + render_tools(self.registry.schemas())
+        if config.user is not None:
+            self._system += "\n\n" + interactive.PROMPT_NOTE
         if config.memory_dir is not None and "remember" in self.registry.names():
             self._system += "\n\n" + MemoryStore(config.memory_dir).prompt_block(config.context_budget)
         self.compactor = Compactor(aux_lm or lm, config.context_budget, self._system)
@@ -96,6 +108,10 @@ class AgentSession:
                     "could finish. Ask me to continue if you want me to keep going.",
                     "token_budget",
                 )
+
+            steer = interactive.poll_steering(self.config.user)
+            if steer is not None:
+                self._add_steering(steer)
 
             messages = self._context()
             turns += 1
@@ -132,8 +148,15 @@ class AgentSession:
                 return self._result(text, "done")
 
             call = parsed.tool_call
-            result = self.registry.execute(call.name, call.args)
             self.transcript.append({"type": "tool_call", "name": call.name, "args": copy.deepcopy(call.args)})
+            # Validate first: a call the registry rejects is never sent for approval.
+            result = self.registry.validate(call.name, call.args)
+            if result is None:
+                result = interactive.check_approval(
+                    self.config.user, self.mode, self.registry.get(call.name), call
+                )
+            if result is None:
+                result = self.registry.execute(call.name, call.args)
             if not result.content.strip():
                 result = ToolResult(result.status, "(no output)")
             # Cap a huge result before it is logged, so the event holds what the model sees.
@@ -154,8 +177,9 @@ class AgentSession:
 
     def _context(self) -> list[dict]:
         """This call's messages: the system prompt and the (compacted) conversation.
-        The current user message and the newest message are never compacted."""
-        protected = {self._current_user, len(self._messages) - 1}
+        The current user message, this send's steering messages and the
+        newest message are never compacted."""
+        protected = {self._current_user, len(self._messages) - 1, *self._steering}
         return self.compactor.build(self._messages, self._kinds, protected)
 
     def _append(self, role: str, content: str, kind: str) -> None:
@@ -165,7 +189,15 @@ class AgentSession:
     def _add_user(self, content: str) -> None:
         self.transcript.append({"type": "user", "content": content})
         self._current_user = len(self._messages)
+        self._steering = []
         self._append("user", content, "user")
+
+    def _add_steering(self, content: str) -> None:
+        """A message the user sent mid-send: logged as they wrote it, shown
+        to the model marked as mid-run, protected until the send ends."""
+        self.transcript.append({"type": "user", "content": content})
+        self._steering.append(len(self._messages))
+        self._append("user", interactive.format_steering(content), "user")
 
     def _add_assistant(self, content: str) -> None:
         self.transcript.append({"type": "assistant", "content": content})
