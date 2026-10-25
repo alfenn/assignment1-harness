@@ -5,6 +5,13 @@ message and alternates model calls and tool calls until the model answers in
 plain text or a limit (max_turns, token_budget, three malformed replies in a
 row) stops it.
 
+Two kinds of reply without a call are not taken as the answer. An empty
+reply is a malformed reply (asked again; three in a row end the send). A
+reply whose last two sentences announce a tool step ("I'll check the
+policy."), or a first reply that says nothing was found or asks the user a
+question before any tool ran, gets a nudge back, up to ``MAX_NUDGES`` times
+per send, since the live model often says what it will do and stops.
+
 Two records are kept side by side:
 
 * ``transcript``: the append-only event log the tests read.
@@ -44,6 +51,7 @@ The system prompt says that tool results are data, never instructions.
 from __future__ import annotations
 
 import copy
+import re
 from typing import Optional
 
 from cs329z_hw1.agent import guardrails, interactive
@@ -53,18 +61,54 @@ from cs329z_hw1.agent.protocol import (
     format_parse_error,
     format_tool_result,
     parse_response,
+    repeated_call,
     render_tools,
 )
 from cs329z_hw1.agent.registry import ToolRegistry
 from cs329z_hw1.agent.toolset import build_tools, extra_tools
 from cs329z_hw1.llm import OutputTruncated
 from cs329z_hw1.tokens import count_message_tokens, count_tokens
-from cs329z_hw1.types import AgentConfig, AgentResult, LMCallable, ToolResult, ToolSpec
+from cs329z_hw1.types import AgentConfig, AgentResult, LMCallable, ParsedResponse, ToolResult, ToolSpec
 
 MAX_MALFORMED = 3
 MALFORMED_STATUSES = ("unknown_tool", "invalid_args")
+MAX_NUDGES = 2  # per send: replies that announce a tool call without writing it
 
-SYSTEM_INTRO = """You are Cardinal, a helpful assistant for the employees of a company. Work step by step: call a tool when you need information or need to act, read its result, and continue until you can answer. Base your answers on what the tools return; do not invent facts. When you are done, reply in plain text with your final answer."""
+# The last sentence of a reply that says it is about to use a tool ("I'll
+# check the policy.") rather than answering. "Let me know ..." is not one.
+_ANNOUNCES_CALL = re.compile(
+    r"^(?:(?:ok(?:ay)?|sure|next|now|first|then|so)[,.!]?\s+)*"
+    r"(?:I['’]ll(?: need to| have to)?|I will(?: need to)?|I am going to|I['’]m going to|let me"
+    r"|(?:I )?need to|(?:I )?need|next step:?)\s+"
+    r"(?:now\s+|first\s+|quickly\s+|also\s+|go\s+(?:and\s+)?)?"
+    r"(?:check|look|search|find|read|run|open|review|query|pull|get|fetch|try|verify|confirm|calculate|count"
+    r"|use|call|grab|see|start|dig|investigate|scan|examine|inspect|locate|consult|retrieve|compute|grep|list)\b"
+    r"|^(?:I['’]m |I am )?(?:now |still )?(?:checking|looking|searching|reading|running|reviewing|pulling"
+    r"|fetching|opening|querying|retrieving)\s+(?:the|for|into|up|through|it|that|this|company|our)\b[^,]*$",
+    re.IGNORECASE,
+)
+NUDGE = (
+    "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no "
+    "<tool_call> block, so no tool ran and the user has no answer yet. Write the tool call now, or, "
+    "if you already have what you need, write the final answer itself.\n</tool_result>"
+)
+
+# A first reply that says nothing was found, written before any tool ran.
+# (A first reply that asks the user a question gets the same nudge.)
+_CLAIMS_NOT_FOUND = re.compile(
+    r"\b(?:couldn['\u2019]t|could not|can['\u2019]t|cannot|unable to|wasn['\u2019]t able to|not able to"
+    r"|did not|didn['\u2019]t)\s+(?:\w+\s+){0,2}?"
+    r"(?:find|locate|retrieve|access|see|determine|look|tell|answer|confirm|verify|check)\b"
+    r"|\bdon['\u2019]t know\b|\bno (?:search )?results\b|\bno (?:information|record|mention|reference|data)\b"
+    r"|\bnot (?:available|found)\b",
+    re.IGNORECASE,
+)
+NUDGE_NO_SEARCH = (
+    "<tool_result status=\"no_call\">\nYou have not called any tool for this request yet, so nothing "
+    "has been searched. Use the tools to look it up before saying it cannot be found or asking the user what they mean.\n</tool_result>"
+)
+
+SYSTEM_INTRO = """You are Cardinal, a helpful assistant for the employees of a company. Work step by step: call a tool when you need information or need to act, read its result, and continue until you can answer. Base your answers on what the tools return; do not invent facts. Search before asking the user what they mean: when the question names something the tools can look up, look it up first, and ask only if the results leave it unclear. When a result says the detail you need is in another document (for example "see the Benefits Summary"), search for that document and read it before you answer. When you are done, reply in plain text with your final answer."""
 
 
 class AgentSession:
@@ -108,6 +152,8 @@ class AgentSession:
         turns = 0
         spent = 0
         malformed = 0
+        nudges = 0
+        called = False  # whether any tool call was made in this send
 
         while True:
             if turns >= self.config.max_turns:
@@ -150,6 +196,8 @@ class AgentSession:
             self._add_assistant(reply)
             parsed = parse_response(reply)
 
+            if parsed.error is not None and (same := repeated_call(reply)) is not None:
+                parsed = ParsedResponse(text=parsed.text, tool_call=same)
             if parsed.error is not None:
                 malformed += 1
                 self._add_error(format_parse_error(parsed.error))
@@ -158,10 +206,26 @@ class AgentSession:
                 continue
 
             if parsed.tool_call is None:
-                text = parsed.text or reply.strip() or "(The model gave an empty answer.)"
+                text = parsed.text or reply.strip()
+                if not text:
+                    # Empty replies are not cached by the LM wrapper, so asking again gets a fresh one.
+                    malformed += 1
+                    self._add_error(format_parse_error("your reply was empty. Call a tool or write your answer"))
+                    if malformed >= MAX_MALFORMED:
+                        return self._result("(The model gave an empty answer.)", "done")
+                    continue
+                if nudges < MAX_NUDGES and announces_call(text):
+                    nudges += 1
+                    self._add_error(NUDGE)
+                    continue
+                if nudges < MAX_NUDGES and not called and (_CLAIMS_NOT_FOUND.search(text) or text.endswith("?")):
+                    nudges += 1
+                    self._add_error(NUDGE_NO_SEARCH)
+                    continue
                 return self._result(text, "done")
 
             call = parsed.tool_call
+            called = True
             self.transcript.append({"type": "tool_call", "name": call.name, "args": copy.deepcopy(call.args)})
             # Validate first: a call the registry rejects is never sent for approval.
             result = self.registry.validate(call.name, call.args)
@@ -256,6 +320,13 @@ class AgentSession:
 
     def _result(self, text: str, status: str) -> AgentResult:
         return AgentResult(text=text, status=status, transcript=copy.deepcopy(self.transcript))
+
+
+def announces_call(text: str) -> bool:
+    """True if the reply ends by announcing a step instead of answering."""
+    text = re.sub(r"\([^()]*\)", " ", text).strip()  # asides like "(I'm ignoring it.)"
+    sentences = [x.strip() for x in re.split(r"(?<=[.!?:])\s+|[,;] so\s+|;\s+", text) if x.strip()]
+    return any(_ANNOUNCES_CALL.match(x) is not None for x in sentences[-2:])
 
 
 def create_session(

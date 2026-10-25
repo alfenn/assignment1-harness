@@ -173,7 +173,7 @@ def parse_response(text: str) -> ParsedResponse:
 def _parse(text: str) -> ParsedResponse:
     start = text.find(OPEN)
     if start == -1:
-        return ParsedResponse(text=text.strip())
+        return _parse_without_open_tag(text)
     call, error, end = _read_call(text, start)
     before = text[:start].strip()
     if error is not None:
@@ -185,6 +185,48 @@ def _parse(text: str) -> ParsedResponse:
         )
     rest = text[end:].strip()
     return ParsedResponse(text="\n\n".join(p for p in (before, rest) if p), tool_call=call)
+
+
+def repeated_call(text: str) -> Optional[ToolCall]:
+    """The call, if a reply holds two or more blocks that are all the same
+    complete call (the live model sometimes writes one call several times).
+    ``parse_response`` still reports such a reply as an error, as the
+    protocol requires; the agent loop uses this to run the call once."""
+    calls: list[ToolCall] = []
+    start = text.find(OPEN)
+    while start != -1:
+        call, error, end = _read_call(text, start)
+        if error is not None:
+            return None
+        calls.append(call)
+        start = text.find(OPEN, end)
+    first = calls[0] if calls else None
+    if len(calls) < 2 or any(c.name != first.name or c.args != first.args for c in calls):
+        return None
+    return first
+
+
+def _parse_without_open_tag(text: str) -> ParsedResponse:
+    """A reply with no OPEN tag is plain text, unless it ends with a complete
+    call object followed by CLOSE: the live model sometimes drops the opening
+    tag and writes just ``{"name": ...}</tool_call>``. That call is accepted."""
+    close = text.find(CLOSE)
+    if close == -1 or text.find(CLOSE, close + 1) != -1:
+        return ParsedResponse(text=text.strip())
+    i = text.find("{")
+    while i != -1 and i < close:
+        try:
+            obj, end = _DECODER.raw_decode(text, i)
+        except Exception:
+            obj, end = None, -1
+        if end != -1 and _skip_ws(text, end) == close:
+            call = _to_call(obj)
+            if isinstance(call, ToolCall):
+                before = text[:i].strip()
+                rest = text[close + len(CLOSE) :].strip()
+                return ParsedResponse(text="\n\n".join(p for p in (before, rest) if p), tool_call=call)
+        i = text.find("{", i + 1)
+    return ParsedResponse(text=text.strip())
 
 
 # ---------------------------------------------------------------- format ----
