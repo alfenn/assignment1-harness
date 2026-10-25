@@ -735,3 +735,197 @@ grepping the raw lines.
 - **Sandbox:** `sandbox.jail()` is `"none"` in this environment, so only the
   allowlist, the scrubbed environment and the timeout apply here (memo Q9).
 - **Cost:** nothing; no model calls.
+
+---
+
+## P11: compaction
+
+All the work is in commit
+[`6d5f794` "finish p11"](https://github.com/alfenn/assignment1-harness/commit/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8).
+The code is the new
+[`cs329z_hw1/agent/compaction.py`](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py),
+called from
+[`AgentSession._context` (line 147)](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/session.py#L147)
+of `cs329z_hw1/agent/session.py`, which now builds every model call's
+messages through it
+([line 92](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/session.py#L92)).
+The live test (`-m live`: two constraints in the first message, eleven
+scripted requests, then one live question asking for the constraints) was
+**not run**: this environment's network policy blocks openrouter.ai, so
+everything below was checked only against the deterministic tests and by
+replaying the live test's script with a stand-in summary model. This section
+feeds memo Q6 (the compaction policy).
+
+### 1. Shortening the view, not the log
+
+**The task.** Every model call must satisfy `count_message_tokens(messages)
+<= context_budget`, but the transcript must keep every event unchanged, and
+P7's rule still holds: a tool result appears verbatim in the call right after
+it.
+
+**The decision.** P7's split (entry 1 there) made this cheap. Neither
+`transcript` nor `_messages` is ever edited. A `Compactor` keeps an overlay
+on top of `_messages`: a set of indices folded into the summary, a map of
+indices shown as short stubs, and the running summary
+([`build`, line 137](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L137)).
+The session records what each message is (`_kinds`: user, assistant, tool,
+error) and passes two protected indices that are never shortened or dropped:
+the user message being worked on (set when it arrives,
+[line 159](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/session.py#L159))
+and the newest message, which after a tool call is the result the next call
+must show verbatim. The summary goes at the end of the system message
+([`_system_message`, line 152](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L152)),
+so calls stay system/user/assistant and the first message still names every
+tool.
+
+**The result.** The transcript test passes: 12 user events, all 60 raw
+replies, 48 tool calls and results, and the snapshot taken after the third
+send is unchanged at the end. The latest-user-message test passes for all 60
+calls.
+
+**How often it came up.** Never; design choice.
+
+**Remediation.** None needed.
+
+### 2. A single result bigger than the budget
+
+**The task.** One `big_output` result is about 30,000 tokens against a
+budget of 4,000, and it has to be in the next call verbatim. Those two rules
+can't both hold unless the result is cut before it is logged.
+
+**The decision.** Every tool result is capped when it arrives, before the
+`tool_result` event is written
+([session line 132](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/session.py#L132),
+[`fit_result`, line 102](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L102)):
+at most `context_budget // 4` tokens (1,000 at 4,000; 4,000 at P15's
+16,000), keeping the first 60% and the last 40% at line boundaries with a
+marker saying how much was left out. The event and the message are built from
+the same capped string, so "the event holds what the model saw" still holds.
+The terminal tool's own policy (P10, an eighth of the budget, with the full
+output saved to a file) is tighter, so this cap never touches terminal
+output; it exists for every other tool.
+
+**The result.** `test_one_result_larger_than_the_budget` passes; with two
+30,000-token results the largest call is about 3,300 tokens.
+
+**How often it came up.** Once, in that test.
+
+**Remediation.** None needed. The cost: a generic tool's cut output is gone
+for good (unlike the terminal's, nothing is saved to disk), so the model can
+only rerun the tool with narrower arguments.
+
+### 3. When to compact and what goes first
+
+**The task.** The handout leaves the whole policy to us: when to trigger,
+what to drop first, what a summary must keep, and what is never compacted
+away.
+
+**The decision.** Lazy trigger with headroom, cheapest step first
+([`_compact`, line 172](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L172)):
+- **Trigger** only when the next call would exceed the budget, then shrink to
+  60% of it
+  ([`TARGET_FRACTION`, line 56](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L56)),
+  so the next several calls fit without another summary. Without the margin,
+  a session that sits near the budget would pay for an `aux_lm` call on every
+  turn.
+- **Step 1, stub old tool results**, oldest first
+  ([line 176](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L176),
+  [`_stub`, line 107](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L107)).
+  A stub keeps the tool name and status, the original size, the first 160
+  characters, and any `.outputs/...` path the terminal tool saved, so the
+  model knows it can `sed -n` the file instead of rerunning the command
+  (P10's observation policy paying off). No model call.
+- **Step 2, fold the oldest steps into a summary**
+  ([line 185](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L185)):
+  drop messages oldest first, keeping a tool call and its result together,
+  until the call fits the target with room reserved for the summary at its
+  full allowance (`context_budget // 8` tokens,
+  [line 53](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L53)).
+  Then one `aux_lm` call writes the new summary from the previous summary
+  plus the folded messages
+  ([`_summarize`, line 204](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L204)).
+- **Never compacted away:** the system prompt, the current user message, and
+  the newest message. If even those don't fit (a huge user message), the
+  summary and then the longest message are cut in the copy that is sent
+  ([`_squeeze`, line 236](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L236)),
+  so the budget holds in every case.
+
+We rejected the alternatives:
+- **Summarize on every overflow, no cheap step.** Pays a model call for what
+  dropping a 400-token filler listing does for free.
+- **Drop old turns with no summary.** Fails the requirement that the user's
+  constraints stay usable after their message leaves the context.
+- **Pin every user message verbatim.** Grows without bound over a long
+  session; it would eventually crowd out the work itself.
+
+**The result.** In the 60-call test the largest call is 3,986 tokens against
+4,000; the summary model is called 5 times over the 12 sends (roughly once
+every two to three sends), 30 results are stubbed and 99 messages are folded.
+After each compaction the next call is about 1,750 tokens.
+
+**How often it came up.** Every time the conversation grew past the budget.
+
+**Remediation.** None needed. 3,986 of 4,000 is close: the trigger fires only
+when the next call would not fit, so calls just below the budget are expected,
+not a near-miss.
+
+### 4. Keeping the user's constraints
+
+**The task.** Constraints the user stated must stay usable after the message
+that carried them is gone. The live test states a budget cap (18,450 dollars)
+and a city (Boulder) in the first message and asks for them after eleven
+requests, by which point that message has been folded many times over.
+
+**The decision.** The summary prompt
+([`SUMMARY_INSTRUCTIONS`, line 70](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L70))
+asks for two sections, "User requirements and constraints" first, copied word
+for word from the previous summary and the new messages, then "Progress".
+Because each new summary is written from the previous one, the constraints
+have to be carried forward on every compaction, and the prompt says never to
+drop one the user didn't withdraw. The summary header in the system message
+says the listed constraints still apply. A summary longer than its allowance
+is cut from the end, so the constraints section (first) is what survives. If
+`aux_lm` raises or returns nothing, the session doesn't fail
+([line 222](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L222)):
+a fallback keeps the previous summary plus the folded user messages in the
+user's own words
+([`_fallback_summary`, line 228](https://github.com/alfenn/assignment1-harness/blob/6d5f794b9cd04c17ac805e8e9cf850d4be4852b8/cs329z_hw1/agent/compaction.py#L228)).
+
+**The result.** Replaying the live test's script with a summary model that
+always raises (so only the fallback runs), the last call's system message
+still holds "18,450" and "Boulder", every call is within 4,000 tokens (largest
+3,953), and the biggest summary request is about 1,500 tokens. With a real
+`aux_lm` this depends on the model copying the constraints forward, which
+only the live test can show.
+
+**How often it came up.** Not measurable without the live test.
+
+**Remediation.** None yet. If the live run loses a constraint, the fallback's
+approach (keep the user's own words, deterministically) could be used
+alongside the model summary instead of only when it fails.
+
+### Open questions for later
+
+- **The fixture system prompt is 1,252 tokens**, above the reference's ~1,000
+  the handout mentions. It fits the 4,000 budget with room, but a third of the
+  budget goes to it; P13–P14 will add text to it.
+- **P13's steering messages.** `pending_message` will add user events in the
+  middle of a send. Only the send's opening message is protected now; a
+  steering message is protected only while it is the newest message.
+- **Summary model calls aren't counted** in a send's `token_budget` (the spec
+  counts only the agent model's calls), so a long session's real cost is a
+  little higher than the budget suggests.
+- **A window can start with an assistant message** (the final answer of a
+  request whose user message was folded). The providers we use accept this;
+  it also keeps the previous answer visible, which helps follow-up questions.
+
+### Where P11 ended up
+
+- **Deterministic tests:** all 6 in `tests/test_compaction.py` pass (1 live
+  test deselected). Full suite: 262 passed, 25 failed (was 259/28); every
+  failure is in the P12–P15 files (memory, interactive, guardrails,
+  sim_eval). P1–P10 still pass, including both terminal large-output tests.
+- **Live test:** not run. openrouter.ai is blocked by this environment's
+  network policy, so whether a real `aux_lm` summary keeps the budget cap and
+  the city is unverified. TODO.md's P11 "Live" box is left unticked.
+- **Cost:** nothing; no model calls.
