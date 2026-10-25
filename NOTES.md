@@ -1144,3 +1144,189 @@ keyword; the fallback list and the prompt block cover that for small stores.
   uses them in session 2 (at least 2 of 3 pairs) is unverified. TODO.md's
   P12 "Live" box is left unticked.
 - **Cost:** nothing; no model calls.
+
+---
+
+## P13: modes, approval, and steering
+
+All the work is in commit
+[`7ae841c` "finish p13"](https://github.com/alfenn/assignment1-harness/commit/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28).
+The policy is the new
+[`cs329z_hw1/agent/interactive.py`](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py),
+called from two points of the loop in `cs329z_hw1/agent/session.py`: the
+steering poll before every model call
+([lines 112–114](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L112-L114))
+and the approval check between validating a call and running it
+([lines 152–159](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L152-L159)).
+P7's `set_mode` (which only stored the mode, P7 open questions) and P8's
+`ask_user` (which already called `config.user.ask`) needed no change. There
+is no live test for P13, so everything below was checked against the
+deterministic tests and one hand-run compaction check. This section feeds
+memo Q8 (the approval policy) and the confirm-mode part of P16.
+
+### 1. Which calls ask for approval
+
+**The task.** In confirm mode every call to a tool with `read_only=False`
+must be approved, once per call, before it runs; `ask_user`, `remember` and
+`recall` never ask; whether the other read-only tools ask is ours to decide.
+In auto mode `approve` is never called.
+
+**The decision.** Ask only for tools that are not read-only
+([`needs_approval`, line 60](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L60)).
+In the Cardinal toolset that is `run_terminal` alone.
+- **Why read-only tools don't ask.** They read the archive, the documents or
+  the agent's own memory and change nothing outside the session, so the worst
+  a bad read-only call does is waste a turn or put untrusted text in the
+  context, and approval would not stop the second (the user can't judge a
+  search query by whether the result will carry an injection). Asking for
+  every search would also make the user approve ten harmless calls for every
+  one that matters, which trains them to say yes without reading; the
+  approval that counts is the one for a command that writes files.
+- **The memory tools and `ask_user` are exempt by name**
+  ([`NEVER_ASK`, line 42](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L42)),
+  not only by their flag, so a tool list that marks one of them
+  `read_only=False` still follows the rule. `remember` writes only to the
+  agent's own store under `config.memory_dir` (P12), and `ask_user` already is
+  a question to the user.
+- **The mode is only `self.mode`.** It starts from `config.mode` and only
+  `set_mode` changes it
+  ([line 87](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L87)),
+  so nothing a tool returns can switch to auto mode (P14 tests this).
+
+**The result.** The approval tests pass, including one `approve` per
+`write_note` call in order (ok, denied, ok) and the full-agent test where a
+denied `run_terminal` command leaves no file and the approved one runs.
+`ask_user` asks no approval in either mode.
+
+**How often it came up.** Never; design choice.
+
+**Remediation.** None needed. The cost of this policy is that confirm mode
+trusts everything the read-only tools return: an instruction planted in a
+document still reaches the model unreviewed, and only a non-read-only call it
+leads to is stopped. That is the P14 problem, and in auto mode nothing stops
+it but the system prompt and the deny rules.
+
+### 2. Validate, then approve, then run
+
+**The task.** A call the registry rejects (unknown tool, invalid arguments)
+must not be sent for approval; a denied call must not run, must not raise,
+and must be logged as `tool_call` + `tool_result` with status "denied" and
+the user's reason.
+
+**The decision.** P5's split between `validate` and `execute` is exactly
+what this needs. The loop now logs the `tool_call`, then runs three steps,
+each of which can produce the result
+([session lines 151–159](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L151-L159)):
+`registry.validate` (a rejection is a malformed reply, as in P7), then
+`check_approval`
+([line 80](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L80)),
+then `registry.execute`. A denial goes through the same path as any other
+result (empty-content guard, the P11 size cap, the `tool_result` event, the
+message back to the model), and it resets the malformed count, since the
+model's call was well formed.
+- **The user gets a copy of the call**
+  ([line 87](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L87)),
+  so whatever an approver does to the arguments, what runs is what the model
+  asked for and what the transcript logged.
+- **Fail closed.** If `approve` raises, or returns anything other than an
+  `Approval` with `approved is True`, the call is denied and the result says
+  why
+  ([line 90](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L90)).
+  A persona model in P15 that errors out must not count as a yes. In confirm
+  mode with no user connected, a non-read-only call is denied the same way.
+
+**The result.** `test_invalid_call_is_not_sent_for_approval` passes (the
+call with a missing `text` gets `invalid_args` and no approval request; the
+corrected one is approved and runs).
+
+**How often it came up.** Never; design choice.
+
+**Remediation.** None needed. P14's deny rules slot in between validation
+and approval: a command a rule matches must be denied without asking the
+user.
+
+### 3. How a denial is phrased
+
+**The task.** The other half of the handout's design question: what the
+model is told when a call is refused. The content must be non-empty even when
+the user gives no reason, and must include the reason when there is one.
+
+**The decision.** One fixed shape
+([`denial`, line 69](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L69)):
+"The user denied this run_terminal call, so it was not run. Their reason:
+<reason>" (or "The user gave no reason."), then "Do not repeat the same call.
+Follow the reason if it says what to do instead, otherwise continue without
+it or tell the user what you could not do." The reason is copied word for
+word (only whitespace collapsed), so a reference id or a "use the other file"
+reaches the model intact. The system prompt gets a short note when a user is
+connected
+([`PROMPT_NOTE`, line 45](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L45)):
+calls that change something may need approval, a denied call did not run and
+should not be retried unchanged, use `ask_user` when guessing would give a
+wrong answer, and a mid-run user message wins over the earlier request.
+- **Why "do not repeat".** The failure we expect from a live model is retrying
+  the same command, or rephrasing it slightly, until the user says yes. The
+  denial says it outright, every time, next to the reason.
+- **Why not stop the send on a denial.** The spec wants the run to continue,
+  and the model often has a useful next step (the test's model looks up the
+  helpdesk after its note is refused).
+
+**The result.** The denial tests pass: the reason (`OPS-3391`, `KX-2204`,
+`MD-5150`) is in the `tool_result` and in the next model call, and an empty
+reason still gives non-empty content. The note costs about 120 tokens: the
+fixture-tool prompt with a user is 1,459 tokens (1,252 without; it also gains
+the `ask_user` schema), the Cardinal prompt 1,926 (1,794 without).
+
+**How often it came up.** Never; design choice. Whether a live model obeys
+"do not repeat" is untested until P15/P16.
+
+**Remediation.** None yet.
+
+### 4. Steering, and keeping it through compaction
+
+**The task.** Call `config.user.pending_message()` exactly once before every
+model call; a returned message is a `user` event and is in that model call.
+P11 left an open question: a steering message is a user message in the
+middle of a send, and only the send's opening message was protected from
+compaction, so a steering message would be folded into the summary as soon as
+a newer message arrived.
+
+**The decision.** Poll right after the two budget checks and before the
+messages are built
+([`poll_steering`, line 97](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L97);
+[session lines 112–114](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L112-L114)),
+so a send that stops on `max_turns` or `token_budget` doesn't consume a
+message no model call would see. A message that raises or is blank counts as
+none. The transcript gets the message exactly as the user wrote it; the model
+sees it with a one-line marker, "[Message from the user, sent while you were
+working:]"
+([`format_steering`, line 112](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/interactive.py#L112)),
+so it can tell a correction from a new request. Each steering message's index
+is added to the compactor's protected set until the next `send` starts
+([`_add_steering`, line 195](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L195);
+[`_context`, line 182](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L182)),
+the same protection the opening message has.
+
+**The result.** The three steering tests pass (the message appears in the
+second call and not the first, after the first tool result in the
+transcript; three polls for three calls; no extra event without a message).
+By hand, a send of eight 400-line `big_output` calls at a 4,000 budget with a
+steering message before call 2: with the protection, the message is in calls
+2–9 and every call stays under budget (largest 3,625 tokens); without it, it
+is gone from call 4 on (the canned summary model didn't copy it).
+
+**How often it came up.** Once, in that hand check; no test covers it.
+
+**Remediation.** Steering messages are protected for the rest of their send
+([line 182](https://github.com/alfenn/assignment1-harness/blob/7ae841cd0db4a5d92c24fa98f58ad39cd5163c28/cs329z_hw1/agent/session.py#L182)).
+After the send they are ordinary history, like the opening message.
+
+### Where P13 ended up
+
+- **Deterministic tests:** all 15 in `tests/test_interactive.py` pass. Full
+  suite: 279 passed, 8 failed (was 268/19); all 8 failures are P14's deny
+  rules in `tests/test_guardrails.py`. The deterministic sim_eval test
+  (`test_scripted_persona_conversation`) now passes too: its persona denies
+  a `write_note` call in confirm mode. P1–P12 still pass.
+- **Live test:** none for P13. TODO.md's P13 "Run" box is ticked.
+- **Cost:** nothing; no model calls.
