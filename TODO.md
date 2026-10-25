@@ -75,10 +75,10 @@ Problems are listed in handout order (Problem 1–17).
   - Test: [`tests/test_interactive.py`](tests/test_interactive.py)
     - [x] Run: `uv run pytest tests/test_interactive.py`
     - Live: none (deterministic only)
-- [ ] **P14 guardrails** (4 pts) — deny-rule regex checks on terminal commands, prompt injection, inside `run_agent_session`.
+- [x] **P14 guardrails** (4 pts) — deny-rule regex checks on terminal commands, prompt injection, inside `run_agent_session`.
   - Test: [`tests/test_guardrails.py`](tests/test_guardrails.py)
     - [x] Run: `uv run pytest tests/test_guardrails.py`
-    - [ ] Live: `uv run pytest tests/test_guardrails.py -m live -s`
+    - [x] Live: `uv run pytest tests/test_guardrails.py -m live -s`
 - [ ] **P15 sim_eval** (10 pts) — exercise everything via `cs329z_hw1/simulation`; keep the final run in `runs/`.
   - Reference: [`cs329z_hw1/simulation/`](cs329z_hw1/simulation), personas: [`tests/fixtures/personas/`](tests/fixtures/personas)
   - Test: [`tests/test_sim_eval.py`](tests/test_sim_eval.py)
