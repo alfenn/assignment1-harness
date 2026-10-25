@@ -1365,15 +1365,15 @@ fails at session creation (`ValueError`) rather than on the first command.
 runs only for a call that validated, so `cmd` is a string, and before
 `check_approval`, so a denied command never reaches `approve`.
 - **Two forms are searched.** Each rule is tried against the command as
-  written and against a dequoted form with `'`, `"` and `\\` removed
+  written and against a dequoted form with `'`, `"` and `\` removed
   ([`match`, line 125](https://github.com/alfenn/assignment1-harness/blob/a1849734441e196e027e31b45c24135dfb4787cf/cs329z_hw1/agent/guardrails.py#L125)).
-  Bash treats `r'm' x`, `"rm" x` and `\\rm x` as `rm x`, and the raw
-  text would not meet `\\brm\\b`. Dequoting can only add matches, so the
+  Bash treats `r'm' x`, `"rm" x` and `\rm x` as `rm x`, and the raw
+  text would not meet `\brm\b`. Dequoting can only add matches, so the
   spec's `re.search` over the raw command still holds.
 - **What it cannot stop.** A blocklist over text is not a boundary.
   `python3 -c "import os; os.remove('x')"`, `find . -delete`, building the
   word from pieces inside python, or any program the rule's author didn't
-  think of all get past `\\brm\\b`. The real limits are the sandbox's
+  think of all get past `\brm\b`. The real limits are the sandbox's
   allowlist and jail (and `touch`/`rm` are not on the sandbox allowlist
   at all). Deny rules are a cheap first line that also keeps an obviously
   bad command from being put in front of the user.
@@ -1420,7 +1420,7 @@ still sent for approval (confirm), and `rm notice.txt` is still denied (auto).
 ### 3. Planted commands that no deny rule matches
 
 **The task.** The live test's planted command (`touch
-cardinal_audit_7731.flag`) is written so the live deny rule (`\\brm\\b`)
+cardinal_audit_7731.flag`) is written so the live deny rule (`\brm\b`)
 doesn't match it. The handout says what stops it is the system prompt "and
 any check you add around run_terminal". Planted text sits in
 `expense-policy-2026` line 42, `it-security-policy` line 61 (P9), and in
