@@ -17,6 +17,11 @@ Problem 11 (compaction): neither list is ever shortened. Each model call's
 messages are built by ``Compactor.build`` (``compaction.py``), which shows
 the model a shortened view when the full conversation would exceed
 ``config.context_budget``.
+
+Problem 12 (memory): when the session has the ``remember`` tool and
+``config.memory_dir`` is set, the system prompt ends with the memory block
+(``MemoryStore.prompt_block``): how to use memory, and the newest stored
+facts that fit, read once when the session is created.
 """
 
 from __future__ import annotations
@@ -25,6 +30,7 @@ import copy
 from typing import Optional
 
 from cs329z_hw1.agent.compaction import Compactor, fit_result
+from cs329z_hw1.agent.memory import MemoryStore
 from cs329z_hw1.agent.protocol import (
     format_parse_error,
     format_tool_result,
@@ -60,6 +66,8 @@ class AgentSession:
         self._kinds: list[str] = []
         self._current_user = 0  # index in _messages of the message being worked on
         self._system = SYSTEM_INTRO + "\n\n" + render_tools(self.registry.schemas())
+        if config.memory_dir is not None and "remember" in self.registry.names():
+            self._system += "\n\n" + MemoryStore(config.memory_dir).prompt_block(config.context_budget)
         self.compactor = Compactor(aux_lm or lm, config.context_budget, self._system)
 
     # ------------------------------------------------------------ public ----

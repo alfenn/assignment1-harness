@@ -68,7 +68,7 @@ Problems are listed in handout order (Problem 1–17).
     - [ ] Live: `uv run pytest tests/test_compaction.py -m live -s`
 - [ ] **P12 memory** (8 pts) — `remember`/`recall` backed by files under `config.memory_dir`, inside `run_agent_session`.
   - Test: [`tests/test_memory.py`](tests/test_memory.py)
-    - [ ] Run: `uv run pytest tests/test_memory.py`
+    - [x] Run: `uv run pytest tests/test_memory.py`
     - [ ] Live: `uv run pytest tests/test_memory.py -m live -s`
 - [ ] **P13 interactive** (7 pts) — confirm vs. auto mode, `ask_user`, approval flow, steering via `pending_message`, inside `run_agent_session`.
   - Reference: [`cs329z_hw1/user.py`](cs329z_hw1/user.py)

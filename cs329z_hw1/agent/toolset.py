@@ -15,9 +15,9 @@ built the first time ``search_docs`` or ``read_doc`` runs, and shared.
 ``run_terminal`` (P10) lives in ``terminal.py``: it runs every command through
 ``sandbox.run_terminal`` and applies the observation policy described there.
 
-Tools from later problems (remember, recall) are registered already, so the
-model and the tests see all ten; until their problem is done, calling one
-raises, which the registry turns into a ``tool_error``.
+``remember`` and ``recall`` (P12) read and write the store under
+``config.memory_dir`` (``memory.py``). Without a memory_dir they raise, which
+the registry turns into a ``tool_error``.
 """
 
 from __future__ import annotations
@@ -28,6 +28,7 @@ from typing import Optional
 
 from cs329z_hw1 import data
 from cs329z_hw1.agent import terminal
+from cs329z_hw1.agent.memory import MemoryStore
 from cs329z_hw1.cardinal import CARDINAL_TOOLS, cardinal_spec
 from cs329z_hw1.pipelines import bm25
 from cs329z_hw1.pipelines import search_docs as docsearch
@@ -208,13 +209,6 @@ def _read_doc(doc_id: str, start_line: int = 1) -> str:
     return f"{header}\n" + "\n".join(body) + f"\n{more}"
 
 
-def _not_yet(problem: str):
-    def fn(**kwargs):
-        raise NotImplementedError(f"this tool is not available yet ({problem})")
-
-    return fn
-
-
 def build_tools(config: AgentConfig, aux_lm: LMCallable) -> list[ToolSpec]:
     """The ten Cardinal tools for one session, in ``CARDINAL_TOOLS`` order."""
 
@@ -235,6 +229,18 @@ def build_tools(config: AgentConfig, aux_lm: LMCallable) -> list[ToolSpec]:
         if config.user is None:
             raise RuntimeError("no user is connected to this session; answer without asking")
         return str(config.user.ask(question))
+
+    store = MemoryStore(config.memory_dir) if config.memory_dir is not None else None
+
+    def remember(fact: str) -> str:
+        if store is None:
+            raise RuntimeError("persistent memory is not configured for this session; nothing was saved")
+        return store.remember(fact)
+
+    def recall(query: str) -> str:
+        if store is None:
+            raise RuntimeError("persistent memory is not configured for this session")
+        return store.recall(query)
 
     impls = {
         "search_emails": (
@@ -273,12 +279,14 @@ def build_tools(config: AgentConfig, aux_lm: LMCallable) -> list[ToolSpec]:
         ),
         "run_terminal": (terminal.DESCRIPTION, terminal.make_run_terminal(config)),
         "remember": (
-            "Save a fact about the user or their preferences to persistent memory.",
-            _not_yet("Problem 12"),
+            "Save one short fact about the user (team, role, preferences, codes, what they "
+            "mean by a term) to persistent memory, so later conversations can use it.",
+            remember,
         ),
         "recall": (
-            "Search persistent memory for facts saved in earlier conversations.",
-            _not_yet("Problem 12"),
+            "Search persistent memory for facts saved in earlier conversations. Returns the "
+            "matching facts with the date each was saved.",
+            recall,
         ),
         "ask_user": (
             "Ask the user a clarifying question and wait for the answer. Use it when the "
