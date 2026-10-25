@@ -1020,6 +1020,28 @@ only the live test can show.
 approach (keep the user's own words, deterministically) could be used
 alongside the model summary instead of only when it fails.
 
+### 5. The live run
+
+The live test first ran in a later session, after the network block was
+lifted. It passed with no change; the TODO tick is commit
+[`c59ee45` "p11 live passes"](https://github.com/alfenn/assignment1-harness/commit/c59ee45b2b81f38f7411a8f10b5dcbe0532b238d).
+
+**The result.** Both constraints survived in the graded (cached) pass and in
+two uncached runs with every `LM` salted (3 of 3). The answers were "The
+budget cap is $18,450, and the offsite has to be in Boulder." and, in both
+uncached runs, the same plus "not Oakland", so the summary also kept the
+distractor the script mentions and the model knew which city was ruled out.
+The largest call was 3,985, 3,937 and 3,983 tokens against the 4,000 budget.
+The real `aux_lm` wrote 7 summaries per run (21 calls over the three runs),
+so entry 4's fallback never had to run, and entry 4's open question (whether
+a real model copies the constraints forward) is answered: it did, every time.
+
+**How often it came up.** Never failed.
+
+**Remediation.** None needed.
+
+**Cost.** $0.010 for the three runs ($0.009 of it the summary model).
+
 ### Open questions for later
 
 - **The fixture system prompt is 1,252 tokens**, above the reference's ~1,000
@@ -1041,10 +1063,9 @@ alongside the model summary instead of only when it fails.
   test deselected). Full suite: 262 passed, 25 failed (was 259/28); every
   failure is in the P12–P15 files (memory, interactive, guardrails,
   sim_eval). P1–P10 still pass, including both terminal large-output tests.
-- **Live test:** not run. openrouter.ai is blocked by this environment's
-  network policy, so whether a real `aux_lm` summary keeps the budget cap and
-  the city is unverified. TODO.md's P11 "Live" box is left unticked.
-- **Cost:** nothing; no model calls.
+- **Live test:** passes, graded and on two uncached runs; both constraints
+  kept every time (entry 5). TODO.md's P11 boxes are ticked.
+- **Cost:** about a cent of live calls (entry 5).
 
 ---
 
