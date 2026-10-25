@@ -55,7 +55,7 @@ Problems are listed in handout order (Problem 1–17).
 - [ ] **P9 search_docs** (5 pts) — stub: [`run_build_doc_index`](cs329z_hw1/adapters.py#L344) / [`run_search_docs`](cs329z_hw1/adapters.py#L357) / [`run_read_doc`](cs329z_hw1/adapters.py#L374). Reuses bm25 logic over `data/docs/`; snippets/windows, not whole docs. Register the tools.
   - Suggested impl: `cs329z_hw1/pipelines/search_docs.py`.
   - Test: [`tests/test_search_docs.py`](tests/test_search_docs.py)
-    - [ ] Run: `uv run pytest tests/test_search_docs.py`
+    - [x] Run: `uv run pytest tests/test_search_docs.py`
     - [ ] Live: `uv run pytest tests/test_search_docs.py -m live -s`
 - [ ] **P10 terminal** (6 pts) — wire `run_terminal` tool to `sandbox.run_terminal` (timeout/rejection/non-zero exit, observation policy for large output), inside `run_agent_session`.
   - Reference: [`cs329z_hw1/sandbox.py`](cs329z_hw1/sandbox.py), [`cs329z_hw1/cardinal.py`](cs329z_hw1/cardinal.py)

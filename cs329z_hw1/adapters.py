@@ -371,7 +371,9 @@ def run_build_doc_index(docs: list[dict]) -> Any:
     it to both; your ``search_docs`` and ``read_doc`` tools should build it
     the first time a tool needs it and share it.
     """
-    raise NotImplementedError
+    from cs329z_hw1.pipelines.search_docs import build_doc_index
+
+    return build_doc_index(docs)
 
 
 def run_search_docs(index: Any, query: str, k: int = 5) -> list[SearchResult]:
@@ -388,7 +390,9 @@ def run_search_docs(index: Any, query: str, k: int = 5) -> list[SearchResult]:
       document and its snippet contains the word.
     * The same call returns the same results every time.
     """
-    raise NotImplementedError
+    from cs329z_hw1.pipelines.search_docs import search_docs
+
+    return search_docs(index, query, k)
 
 
 def run_read_doc(index: Any, doc_id: str, start_line: int = 1) -> DocWindow:
@@ -407,4 +411,6 @@ def run_read_doc(index: Any, doc_id: str, start_line: int = 1) -> DocWindow:
     * An unknown ``doc_id``, or a ``start_line`` outside
       ``1..total_lines``, raises ValueError or LookupError.
     """
-    raise NotImplementedError
+    from cs329z_hw1.pipelines.search_docs import read_doc
+
+    return read_doc(index, doc_id, start_line)
