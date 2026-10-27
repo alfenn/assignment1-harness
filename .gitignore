@@ -5,6 +5,6 @@ __pycache__/
 .lm_cache/
 data/emails/
 data/raw/
-runs/
+runs/sim*
 *.pyc
 .DS_Store

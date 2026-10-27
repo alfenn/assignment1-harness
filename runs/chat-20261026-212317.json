@@ -1,0 +1,59 @@
+{
+  "started": "20261026-212317",
+  "mode": "confirm",
+  "model": "openai/gpt-6-luna",
+  "turns": [
+    {
+      "user": "how many emails are in the archive?",
+      "agent": "There are 26,278 emails in the archive.",
+      "status": "done"
+    }
+  ],
+  "transcript": [
+    {
+      "type": "user",
+      "content": "how many emails are in the archive?"
+    },
+    {
+      "type": "assistant",
+      "content": "<tool_call>\n{\"name\":\"run_terminal\",\"args\":{\"cmd\":\"wc -l emails.jsonl\"}}\n</tool_call>"
+    },
+    {
+      "type": "tool_call",
+      "name": "run_terminal",
+      "args": {
+        "cmd": "wc -l emails.jsonl"
+      }
+    },
+    {
+      "type": "tool_result",
+      "name": "run_terminal",
+      "status": "ok",
+      "content": "exit code: 0\nstdout (1 line, 22 characters):\n   26278 emails.jsonl\nstderr: (empty)"
+    },
+    {
+      "type": "assistant",
+      "content": "There are 26,278 emails in the archive."
+    }
+  ],
+  "usage": {
+    "agent": {
+      "model": "openai/gpt-6-luna",
+      "calls": 2,
+      "cached_calls": 0,
+      "input_tokens": 5232,
+      "output_tokens": 55,
+      "cost_usd": 9.094e-05,
+      "seconds": 3.560551166534424
+    },
+    "aux": {
+      "model": "openai/gpt-6-luna",
+      "calls": 0,
+      "cached_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost_usd": 0.0,
+      "seconds": 0.0
+    }
+  }
+}

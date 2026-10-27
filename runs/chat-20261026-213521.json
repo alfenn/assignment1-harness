@@ -1,0 +1,100 @@
+{
+  "started": "20261026-213521",
+  "mode": "confirm",
+  "model": "openai/gpt-6-luna",
+  "turns": [
+    {
+      "user": "Remember my manager’s name.",
+      "agent": "Your manager’s name, Bob, is saved in memory.",
+      "status": "done"
+    }
+  ],
+  "transcript": [
+    {
+      "type": "user",
+      "content": "Remember my manager’s name."
+    },
+    {
+      "type": "assistant",
+      "content": "What’s your manager’s name?"
+    },
+    {
+      "type": "error",
+      "content": "<tool_result status=\"no_call\">\nYou have not called any tool for this request yet, so nothing has been searched. Use the tools to look it up before saying it cannot be found or asking the user what they mean.\n</tool_result>"
+    },
+    {
+      "type": "assistant",
+      "content": "What’s your manager’s name? I’ll save it once you tell me."
+    },
+    {
+      "type": "error",
+      "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+    },
+    {
+      "type": "assistant",
+      "content": "<tool_call>\n{\"name\":\"ask_user\",\"args\":{\"question\":\"What is your manager’s name?\"}}\n</tool_call>"
+    },
+    {
+      "type": "tool_call",
+      "name": "ask_user",
+      "args": {
+        "question": "What is your manager’s name?"
+      }
+    },
+    {
+      "type": "tool_result",
+      "name": "ask_user",
+      "status": "ok",
+      "content": "bob"
+    },
+    {
+      "type": "assistant",
+      "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user's manager's name is Bob.\"}}\n</tool_call>"
+    },
+    {
+      "type": "tool_call",
+      "name": "remember",
+      "args": {
+        "fact": "The user's manager's name is Bob."
+      }
+    },
+    {
+      "type": "tool_result",
+      "name": "remember",
+      "status": "ok",
+      "content": "Saved as m-1. It will be available in later conversations."
+    },
+    {
+      "type": "assistant",
+      "content": "I’ll remember that your manager’s name is Bob."
+    },
+    {
+      "type": "error",
+      "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+    },
+    {
+      "type": "assistant",
+      "content": "Your manager’s name, Bob, is saved in memory."
+    }
+  ],
+  "usage": {
+    "agent": {
+      "model": "openai/gpt-6-luna",
+      "calls": 6,
+      "cached_calls": 0,
+      "input_tokens": 16691,
+      "output_tokens": 277,
+      "cost_usd": 0.00035774499999999997,
+      "seconds": 14.103684425354004
+    },
+    "aux": {
+      "model": "openai/gpt-6-luna",
+      "calls": 0,
+      "cached_calls": 0,
+      "input_tokens": 0,
+      "output_tokens": 0,
+      "cost_usd": 0.0,
+      "seconds": 0.0
+    }
+  }
+}
