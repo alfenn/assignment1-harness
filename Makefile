@@ -11,3 +11,6 @@ test-all:
 
 costs:
 	uv run python -m cs329z_hw1.llm
+
+chat: 
+	uv run python -m cs329z_hw1.chat
