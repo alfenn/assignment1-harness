@@ -1,4 +1,4 @@
-.PHONY: test test-live test-all
+.PHONY: test test-live test-all costs
 
 test:
 	uv run pytest
@@ -8,3 +8,6 @@ test-live:
 
 test-all:
 	uv run pytest -m "live or not live" -s
+
+costs:
+	uv run python -m cs329z_hw1.llm
