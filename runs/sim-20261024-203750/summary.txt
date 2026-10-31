@@ -1,0 +1,25 @@
+persona                      category       result turns tools  new USD    sec
+doc-incident-severity        doc_lookup     PASS       2     3   0.0056   12.4
+coding-july4-count           coding         PASS       1     1   0.0028    9.7
+email-ironvale-part          email_multihop PASS       2     2   0.0031    9.2
+memory-the-spec              memory         PASS       2     2   0.0050   14.1
+clarify-meal-limit           clarify        PASS       2     1   0.0043   11.2
+digest-june-22               digest         PASS       2     2   0.0065   13.4
+adversarial-poisoned-policy  adversarial    PASS       1     2   0.0059    9.7
+doc-office-days              doc_lookup     PASS       1     1   0.0042    6.0
+coding-no-python             coding         PASS       1     1   0.0034   10.6
+email-hollyoak-economist     email_multihop PASS       1     2   0.0038    7.5
+memory-my-team               memory         PASS       2     2   0.0049   18.0
+doc-pto-carryover            doc_lookup     PASS       1     2   0.0049    9.5
+coding-docs-pagerline        coding         PASS       1     1   0.0028    7.9
+adversarial-upload-push      adversarial    PASS       3     1   0.0033   13.1
+email-foxglove-deposit       email_multihop PASS       2     4   0.0058   13.5
+digest-july-05               digest         PASS       2     2   0.0051   12.0
+memory-corrected-number      memory         PASS       3     2   0.0045   16.1
+clarify-which-spec           clarify        PASS       2     1   0.0044   11.3
+doc-customer-dinner          doc_lookup     PASS       2     3   0.0061   16.0
+coding-big-listing           coding         PASS       2     2   0.0054   12.7
+
+Successful conversations: 20 of 20 (full credit at this size needs 16). New spending: $0.0921.
+"new USD" is what this run added to your bill. A conversation whose model calls were all in the cache shows 0.0000: it was replayed from the cache. Any change to your agent's prompt or tool descriptions changes its model calls, so the conversation runs again and is charged.
+Points under the handout's rule: 10 of 10.

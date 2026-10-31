@@ -1,0 +1,161 @@
+{
+  "persona_id": "memory-the-spec",
+  "category": "memory",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Hi. I'm on the Platform team. When I say \"the spec\" I always mean the GridLens API spec. Please remember that."
+        },
+        {
+          "kind": "agent",
+          "content": "I’ve saved that you’re on the Platform team and that “the spec” means the GridLens API spec.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Hi. I'm on the Platform team. When I say \"the spec\" I always mean the GridLens API spec. Please remember that."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user is on the Platform team and uses “the spec” to mean the GridLens API spec.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user is on the Platform team and uses “the spec” to mean the GridLens API spec."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-1. It will be available in later conversations."
+        },
+        {
+          "type": "assistant",
+          "content": "Got it. I’ll remember that you’re on the Platform team and that “the spec” means the GridLens API spec."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "I’ve saved that you’re on the Platform team and that “the spec” means the GridLens API spec."
+        }
+      ],
+      "ending": "goal_met"
+    },
+    {
+      "index": 2,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "What's the document number of the spec, and what date is on it?"
+        },
+        {
+          "kind": "agent",
+          "content": "The GridLens Ingestion API Specification is document API-SPEC-002, dated 2026-02-20.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "What's the document number of the spec, and what date is on it?"
+        },
+        {
+          "type": "assistant",
+          "content": "I’ll look up the GridLens API spec."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"GridLens API spec document number date\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "GridLens API spec document number date",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\ngridlens-api-spec (GridLens Ingestion API Specification; date 2026-02-20), line 1:\n  # GridLens Ingestion API Specification Document number: API-SPEC-002 Version: 2.1 Date: 2026-02-20 Owner: Platform team (Dmitri Volkov, Director of Platform Engineering) Author: Arjun Mehta, Staff Engineer Status: Approved. Describes API version 2.1, which ships with GridLens 4.8.\n\nfirmware-spec-emberos (EmberOS 3 Firmware Specification; date 2026-04-08), line 14:\n  [1. Scope] The cloud interface for customers and integrators is a different document, the GridLens Ingestion API Specification (API-SPEC-002). When someone on the Firmware team says \"the spec\", they usually mean this document. When someone on the Platform team says it, they usually mean the API specification.\n\nfirmware-spec-emberos (EmberOS 3 Firmware Specification; date 2026-04-08), line 1:\n  # EmberOS 3 Firmware Specification Document number: FW-SPEC-003 Revision: 3.2 Date: 2026-04-08 Owner: Firmware team (Nadia Ferreira, Firmware Engineering Manager) Author: Sam Okonkwo, Senior Firmware Engineer Status: Approved. Describes EmberOS 3.2.0.\n\ngridlens-api-spec (GridLens Ingestion API Specification; date 2026-02-20), line 14:\n  [1. Scope] Cardinal devices do not use this interface. They connect to the device broker with the protocol defined in the EmberOS 3 Firmware Specification (FW-SPEC-003). Both paths feed the same pipeline, which is described in the GridLens Architecture Overview.\n\ngridlens-release-notes (GridLens Release Notes, 2025 to 2026; last updated 2026-08-25), line 39:\n  [GridLens 4.8] - Fixed: a batch of exactly 5,000 readings was rejected as too large. Note for Customer Success: the shutdown date for API version 1 is now stated in the API specification."
+        },
+        {
+          "type": "assistant",
+          "content": "The GridLens Ingestion API Specification is document API-SPEC-002, dated 2026-02-20."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 7.32,
+  "usage": {
+    "agent": {
+      "calls": 6,
+      "cached_calls": 3,
+      "cost_usd": 0.000542215
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 1,
+      "cost_usd": 5.46e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0042185
+    }
+  },
+  "checks": [
+    {
+      "type": "first_reply_contains_any",
+      "passed": true,
+      "detail": "expected the first reply to contain one of ['API-SPEC-002']; got: 'The GridLens Ingestion API Specification is document API-SPEC-002, dated 2026-02-20.'"
+    },
+    {
+      "type": "tool_not_called",
+      "passed": true,
+      "detail": "no call to ask_user"
+    },
+    {
+      "type": "no_reply_contains_any",
+      "passed": true,
+      "detail": "no agent reply contains any of ['FW-SPEC-003']"
+    },
+    {
+      "type": "session2_did_not_reask",
+      "passed": true,
+      "detail": "nothing in session 2 matches 'which (spec|specification|document|one)\\\\b|do you mean the'"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The search result supports the document number and date the agent gave, and the agent used the API specification rather than the firmware specification.",
+    "raw": "CRITERIA:\n1. MET: The agent answered API-SPEC-002, dated 2026-02-20, for the GridLens API specification.\n2. MET: The agent did not ask which spec the user meant.\nFABRICATION: NO\nREASON: The search result supports the document number and date the agent gave, and the agent used the API specification rather than the firmware specification.\nVERDICT: PASS"
+  },
+  "success": true
+}

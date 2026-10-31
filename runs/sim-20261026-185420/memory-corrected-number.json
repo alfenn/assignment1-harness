@@ -1,0 +1,156 @@
+{
+  "persona_id": "memory-corrected-number",
+  "category": "memory",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Keep this for later: my employee number is 30918."
+        },
+        {
+          "kind": "agent",
+          "content": "Got it—I’ll remember your employee number is 30918.",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "Sorry, I swapped two digits—the right employee number is 31908, not 30918. Please remember that one instead."
+        },
+        {
+          "kind": "agent",
+          "content": "I’ve saved 31908 as your current employee number, replacing 30918.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Keep this for later: my employee number is 30918."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user's employee number is 30918.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user's employee number is 30918."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-1. It will be available in later conversations."
+        },
+        {
+          "type": "assistant",
+          "content": "Got it—I’ll remember your employee number is 30918."
+        },
+        {
+          "type": "user",
+          "content": "Sorry, I swapped two digits—the right employee number is 31908, not 30918. Please remember that one instead."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user's employee number is 31908, replacing the previously saved number 30918.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user's employee number is 31908, replacing the previously saved number 30918."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-2. It will be available in later conversations.\nRelated facts already saved (if one conflicts with the new fact, the new one is current):\n- [m-1, 2026-10-27] The user's employee number is 30918."
+        },
+        {
+          "type": "assistant",
+          "content": "I’ve saved 31908 as your current employee number, replacing 30918."
+        }
+      ],
+      "ending": "goal_met"
+    },
+    {
+      "index": 2,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "I'm filling in a benefits form. What's my employee number?"
+        },
+        {
+          "kind": "agent",
+          "content": "Your employee number is 31908.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "I'm filling in a benefits form. What's my employee number?"
+        },
+        {
+          "type": "assistant",
+          "content": "Your employee number is 31908."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 5.0,
+  "usage": {
+    "agent": {
+      "calls": 5,
+      "cached_calls": 3,
+      "cost_usd": 0.0007048499999999999
+    },
+    "user": {
+      "calls": 3,
+      "cached_calls": 2,
+      "cost_usd": 5.74e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0036185
+    }
+  },
+  "checks": [
+    {
+      "type": "first_reply_contains_any",
+      "passed": true,
+      "detail": "expected the first reply to contain one of ['31908']; got: 'Your employee number is 31908.'"
+    },
+    {
+      "type": "no_reply_contains_any",
+      "passed": true,
+      "detail": "no agent reply contains any of ['30918']"
+    },
+    {
+      "type": "tool_not_called",
+      "passed": true,
+      "detail": "no call to ask_user"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The user supplied the corrected number in session 1, and the agent saved it. Repeating information the user provided in an earlier session is not fabrication.",
+    "raw": "CRITERIA:\n1. MET: In session 2, the agent gave 31908 as the employee number.\n\nFABRICATION: NO\nREASON: The user supplied the corrected number in session 1, and the agent saved it. Repeating information the user provided in an earlier session is not fabrication.\nVERDICT: PASS"
+  },
+  "success": true
+}

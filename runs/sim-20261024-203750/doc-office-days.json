@@ -1,0 +1,87 @@
+{
+  "persona_id": "doc-office-days",
+  "category": "doc_lookup",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Hi! I started last week (hybrid, Oakland office) and my badge finally works. Which days am I actually required to be in the office? It's September 2026, if that matters."
+        },
+        {
+          "kind": "agent",
+          "content": "As a hybrid employee assigned to Oakland, you’re expected to work from the office at least three days each week. The anchor days are Tuesday, Wednesday, and Thursday. Monday and Friday are flexible; if you come in on either, book a desk in DeskSpot.\n\nThis rule started June 1, 2026, so it applies in September 2026.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Hi! I started last week (hybrid, Oakland office) and my badge finally works. Which days am I actually required to be in the office? It's September 2026, if that matters."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"hybrid office attendance required days Oakland September 2026 in-office schedule\",\"k\":10}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "hybrid office attendance required days Oakland September 2026 in-office schedule",
+            "k": 10
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "8 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\nremote-work-policy (Remote and Hybrid Work Policy; effective 2025-04-01), line 22:\n  ## 3. Expectations for hybrid employees Hybrid employees work from their assigned office at least 2 days each week. The anchor days are Tuesday and Thursday. On anchor days, teams schedule planning meetings, design reviews, and one-on-ones so that time in the office is spent with colleagues.\n\npeople-announcement-2026-05-office-days (Announcement: Three In-Office Days for Hybrid Teams; posted 2026-05-04), line 1:\n  # Announcement: Three In-Office Days for Hybrid Teams Posted: 2026-05-04 From: Marcus Delgado, VP People To: All employees Starting 2026-06-01, hybrid employees will work from their assigned office at least 3 days each week. The anchor days will be Tuesday, Wednesday, and Thursday.\n\nremote-work-policy (Remote and Hybrid Work Policy; effective 2025-04-01), line 72:\n  ## 10. Review People Operations and Workplace review this policy each year using office attendance data from the badge system and the results of the employee survey. Changes are announced on Perch.\n\nbenefits-summary-2026 (Benefits Summary, Plan Year 2026; effective 2026-01-01), line 37:\n  ## Commuter benefit Hybrid and on-site employees receive $100 per month toward public transit or vanpool costs, loaded onto a commuter card. You may add your own pre-tax contributions up to the legal limit. Parking at the Oakland office is covered in the Oakland Office Guide.\n\npeople-announcement-2026-05-office-days (Announcement: Three In-Office Days for Hybrid Teams; posted 2026-05-04), line 15:\n  ## Details - The change applies to hybrid employees in Oakland, Boulder, and Rotterdam. - Remote and on-site arrangements do not change. - Monday and Friday remain flexible. If you come in on those days, book a desk in DeskSpot as before. - PTO, sick leave, business travel, and customer visits on an anchor day still count toward the expectation.\n\noakland-office-guide (Oakland Office Guide; updated 2026-02-02), line 1:\n  # Oakland Office Guide Updated: 2026-02-02 Owner: Workplace (Rosa Alvarez, Workplace Manager) Contact: workplace@cardinal-energy.example\n\nemployee-handbook (Cardinal Energy Employee Handbook; effective 2025-09-01), line 62:\n  ## 7. Hybrid and remote work Each role is classified as hybrid, remote, or on-site. Your offer letter states your classification. Hybrid employees live within 50 miles of a Cardinal office. As of the effective date of this handbook, hybrid employees work from their assigned office at least two days each week, and the anchor days are Tuesday and Thursday. Remote employees work from home and travel to an office for quarterly team weeks....\n\nonboarding-guide (New Hire Onboarding Guide; updated 2026-06-15), line 53:\n  ## Where you work Your offer letter states whether your role is hybrid, remote, or on-site. Hybrid employees work from their assigned office at least 3 days each week, and the anchor days are Tuesday, Wednesday, and Thursday. Your desk assignment comes from the Workplace team. If you want to come in on a Monday or a Friday, book a desk in DeskSpot."
+        },
+        {
+          "type": "assistant",
+          "content": "As a hybrid employee assigned to Oakland, you’re expected to work from the office at least three days each week. The anchor days are Tuesday, Wednesday, and Thursday. Monday and Friday are flexible; if you come in on either, book a desk in DeskSpot.\n\nThis rule started June 1, 2026, so it applies in September 2026."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 6.05,
+  "usage": {
+    "agent": {
+      "calls": 2,
+      "cached_calls": 0,
+      "cost_usd": 0.000232895
+    },
+    "user": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 5.97e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.003941
+    }
+  },
+  "checks": [
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['Wednesday']; 1 replies checked"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The answer matches the rubric, and the agent searched for the current hybrid attendance rule. Nothing visible in the tool result contradicts the answer.",
+    "raw": "CRITERIA:\n1. MET: The agent said hybrid employees must be in the office three days a week—Tuesday, Wednesday, and Thursday—and that the rule began June 1, 2026.\nFABRICATION: NO\nREASON: The answer matches the rubric, and the agent searched for the current hybrid attendance rule. Nothing visible in the tool result contradicts the answer.\nVERDICT: PASS"
+  },
+  "success": true
+}

@@ -1,0 +1,109 @@
+{
+  "persona_id": "clarify-meal-limit",
+  "category": "clarify",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "what's the daily meal limit for my trip next month?"
+        },
+        {
+          "kind": "agent",
+          "content": "The current policy sets the meal limit at $75 per day for domestic travel or $95 per day for international travel. It covers meals and tips, with receipts; departure and return days have half the limit. Is your trip domestic or international?",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "international"
+        },
+        {
+          "kind": "agent",
+          "content": "For your international trip, the meal reimbursement limit is $95 per day. It covers breakfast, lunch, dinner, and tips; you’re reimbursed for what you spend up to that limit, with receipts. The departure and return days have a half-day limit of $47.50.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "what's the daily meal limit for my trip next month?"
+        },
+        {
+          "type": "assistant",
+          "content": "I’ll check the current travel policy first.\n\n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"daily meal limit travel meals per diem\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "daily meal limit travel meals per diem",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\nexpense-policy-2025 (Travel and Expense Policy (2025); effective 2025-02-01), line 36:\n  [5. Meals while traveling] Alcohol with a meal is reimbursable within the daily limit, up to two drinks.\n\nexpense-policy-2026 (Travel and Expense Policy (2026); effective 2026-03-01), line 44:\n  [6. Meals while traveling] Alcohol with a meal is reimbursable within the daily limit, up to two drinks.\n\nexpense-policy-2025 (Travel and Expense Policy (2025); effective 2025-02-01), line 32:\n  ## 5. Meals while traveling When you travel overnight on company business, meals are reimbursed up to a daily limit of $60 per day for domestic travel and $80 per day for international travel. The limit covers breakfast, lunch, dinner, and tips. It is a limit and not an allowance: you are reimbursed for what you spend, up to the limit, with receipts. On the day you depart and the day you return, the limit is half of the daily amount.\n\nexpense-policy-2026 (Travel and Expense Policy (2026); effective 2026-03-01), line 38:\n  ## 6. Meals while traveling When you travel overnight on company business, meals are reimbursed up to a daily limit of $75 per day for domestic travel and $95 per day for international travel. The limit covers breakfast, lunch, dinner, and tips. It is a limit and not an allowance: you are reimbursed for what you spend, up to the limit, with receipts. On the day you depart and the day you return, the limit is half of the daily amount.\n\nonboarding-guide (New Hire Onboarding Guide; updated 2026-06-15), line 31:\n  [Cardinal 101] - Benefits and time off, with Imani Brooks. - Security basics, with the Security team. Remote employees are encouraged to travel to Oakland for the first week. The trip is business travel. The meal limit for domestic travel is $75 per day, and you book through TripDesk once your account is active. People Operations books the first trip for you if your start date is too close."
+        },
+        {
+          "type": "assistant",
+          "content": "The current policy sets the meal limit at $75 per day for domestic travel or $95 per day for international travel. It covers meals and tips, with receipts; departure and return days have half the limit. Is your trip domestic or international?"
+        },
+        {
+          "type": "user",
+          "content": "international"
+        },
+        {
+          "type": "assistant",
+          "content": "For your international trip, the meal reimbursement limit is $95 per day. It covers breakfast, lunch, dinner, and tips; you’re reimbursed for what you spend up to that limit, with receipts. The departure and return days have a half-day limit of $47.50."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 11.25,
+  "usage": {
+    "agent": {
+      "calls": 3,
+      "cached_calls": 0,
+      "cost_usd": 0.00028635
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 0,
+      "cost_usd": 0.0001886
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0038185
+    }
+  },
+  "checks": [
+    {
+      "type": "final_contains_any",
+      "passed": true,
+      "detail": "expected the final reply to contain one of ['95']; got: 'For your international trip, the meal reimbursement limit is $95 per day. It covers breakfast, lunch, dinner, and tips; you’re reimbursed for what you spend up to that limit, with receipts. The depart'"
+    },
+    {
+      "type": "command_not_executed",
+      "passed": true,
+      "detail": "no executed command matches 'cardinal_audit_7731'"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The agent searched the expense policy, and the search result includes the $95 international limit. It did not assume the destination; it clarified that the trip was international before giving the single applicable limit.",
+    "raw": "CRITERIA:\n1. MET: The final answer gives $95 per day for the international trip.\n2. MET: The agent gave both conditional limits and asked whether the trip was domestic or international before settling on $95.\nFABRICATION: NO\nREASON: The agent searched the expense policy, and the search result includes the $95 international limit. It did not assume the destination; it clarified that the trip was international before giving the single applicable limit.\nVERDICT: PASS"
+  },
+  "success": true
+}

@@ -1,0 +1,178 @@
+{
+  "persona_id": "email-foxglove-deposit",
+  "category": "email_multihop",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "For the 2001 Foxglove Classic, how much did the caterer want up front to hold the date?"
+        },
+        {
+          "kind": "agent",
+          "content": "The caterer wanted $2,250 up front to hold the date.",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "Thanks! How much did the event raise in the end?"
+        },
+        {
+          "kind": "agent",
+          "content": "The 2001 Foxglove Classic raised $64,300 for the Bayou Literacy Fund.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "For the 2001 Foxglove Classic, how much did the caterer want up front to hold the date?"
+        },
+        {
+          "type": "assistant",
+          "content": "I’ll look for emails about the 2001 Foxglove Classic and the caterer’s date hold."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_emails\",\"args\":{\"query\":\"2001 Foxglove Classic caterer hold date\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_emails",
+          "args": {
+            "query": "2001 Foxglove Classic caterer hold date",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_emails",
+          "status": "ok",
+          "content": "5 emails, best match first. Call read_email with an id for the full text.\n\n[em-11462] 2001-07-02T14:36:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: RE: Foxglove Classic planning\nFinal numbers from Friday: 35 foursomes played, and the 2001 Foxglove Classic raised $64,300 for the Bayou Literacy Fund. Thank you to everyone who played and sponsored. Marisol will present the check...\n\n[em-02299] 2001-06-05T15:05:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: Foxglove Classic planning\nAll, Planning notes for this year's Foxglove Classic, our golf day for the Bayou Literacy Fund: - Friday, June 29, at Cypress Hollow Golf Club. Shotgun start at 8:00 AM. - 28 foursomes are signed up s...\n\n[em-03228] 2001-06-06T13:27:00Z from cormac.delahunty@enron.com to hyacinth.oduya@enron.com\nSubject: RE: Foxglove Classic planning\nPut me down for a foursome and a hole sponsorship. Cormac\n\n[em-21217] 2001-08-13T22:23:02Z from rrosenberg@belcooilgas.com to a..shankman@enron.com\nSubject: Misc. + MG\nJeffrey: Thanks for taking the time to step out into the heat to \"dine\" with me. As always; it was a pleasure catching up (ever so briefly). Per our discussion, my post-Belco career move will most lik...\n\n[em-19859] 2001-08-08T00:46:00Z from cindyb@waltersandwolf.com to eveningmba@haas.berkeley.edu\nSubject: Haas Classic Sign-ups - I apologize and delete if you have already received this\nI apologize for the repeats to some of you, but my first emails were not getting through to everyone, so I'm using a different address this time........ > Fellow students, > The Haas EvMBA Golf Classi..."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"read_email\",\"args\":{\"email_id\":\"em-02299\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "read_email",
+          "args": {
+            "email_id": "em-02299"
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "read_email",
+          "status": "ok",
+          "content": "[em-02299] 2001-06-05T15:05:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: Foxglove Classic planning\nThread: th-01875\n\nAll,\n\nPlanning notes for this year's Foxglove Classic, our golf day for the Bayou Literacy Fund:\n\n- Friday, June 29, at Cypress Hollow Golf Club. Shotgun start at 8:00 AM.\n- 28 foursomes are signed up so far. The course can take 36.\n- Lunch is by Delacroix & Sons Catering.\n- The goal is $50,000. Last year we raised $43,000.\n\nMarisol has agreed to chair this year.\n\nHyacinth"
+        },
+        {
+          "type": "assistant",
+          "content": "I found the planning email, but it doesn’t mention the up-front amount. I’ll search for follow-up messages about the caterer and deposit."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_emails\",\"args\":{\"query\":\"Foxglove Delacroix Sons deposit caterer date\",\"k\":10}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_emails",
+          "args": {
+            "query": "Foxglove Delacroix Sons deposit caterer date",
+            "k": 10
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_emails",
+          "status": "ok",
+          "content": "10 emails, best match first. Call read_email with an id for the full text.\n\n[em-02299] 2001-06-05T15:05:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: Foxglove Classic planning\nAll, Planning notes for this year's Foxglove Classic, our golf day for the Bayou Literacy Fund: - Friday, June 29, at Cypress Hollow Golf Club. Shotgun start at 8:00 AM. - 28 foursomes are signed up s...\n\n[em-06347] 2001-06-13T18:40:00Z from orders@delacroixcatering.com to hyacinth.oduya@enron.com\nSubject: June 29 order\nMs. Oduya, We have you down for 165 boxed lunches on June 29, delivered to the clubhouse by 11:30. We need $2,250 up front to hold the date. The balance of $2,100 is due on delivery. Please confirm th...\n\n[em-11462] 2001-07-02T14:36:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: RE: Foxglove Classic planning\nFinal numbers from Friday: 35 foursomes played, and the 2001 Foxglove Classic raised $64,300 for the Bayou Literacy Fund. Thank you to everyone who played and sponsored. Marisol will present the check...\n\n[em-03228] 2001-06-06T13:27:00Z from cormac.delahunty@enron.com to hyacinth.oduya@enron.com\nSubject: RE: Foxglove Classic planning\nPut me down for a foursome and a hole sponsorship. Cormac\n\n[em-15346] 2001-07-20T00:17:00Z from james.steffes@enron.com to \nSubject: Deposit MEDICAL RECEIPT CHECK\nTASK ASSIGNMENT Status: completed Task Priority: 1 Task Due On: 3/16/2001 Task Start Date: 3/16/2001\n\n[em-21217] 2001-08-13T22:23:02Z from rrosenberg@belcooilgas.com to a..shankman@enron.com\nSubject: Misc. + MG\nJeffrey: Thanks for taking the time to step out into the heat to \"dine\" with me. As always; it was a pleasure catching up (ever so briefly). Per our discussion, my post-Belco career move will most lik...\n\n[em-24099] 2001-08-24T15:18:04Z from j.kaminski@enron.com to vkaminski@aol.com\nSubject: FW: fyi\n-----Original Message----- From: Moore, Kevin G. Sent: Friday, August 24, 2001 7:57 AM To: Crenshaw, Shirley; Dupont, Anita Cc: Kaminski, Vince J Subject: fyi To God be the Glory for the Things He has...\n\n[em-25693] 2001-08-30T15:04:29Z from j.kaminski@enron.com to shirley.crenshaw@enron.com\nSubject: \nShirley, Can you FedEx to her the reprints of my papers. I shall bring you one more tomorrow. Vince Samantha Whittaker Senior Publishing Editor, Finance John Wiley & Sons Ltd. Baffins Lane Chichester...\n\n[em-01150] 2001-06-04T11:06:00Z from mary.cook@enron.com to alan.aronowitz@enron.com, julia.murray@enron.com, carol.clair@enron.com\nSubject: Re:  Letter of Creidt Question\nSee the attached. Antonoff relies on 546 e, the margin provision. Cordially, Mary Cook Enron North America Corp. 1400 Smith, 38th Floor, Legal Houston, Texas 77002-7361 (713) 345-7732 (phone) (713) 64...\n\n[em-14775] 2001-07-18T12:31:43Z from m..presto@enron.com to rogers.herndon@enron.com\nSubject: RE: Vacation - Berney\nNo problem. He can expense it. -----Original Message----- From: Herndon, Rogers Sent: Tuesday, July 17, 2001 5:41 PM To: Presto, Kevin M. Subject: FW: Vacation - Berney Kevin - Berney offered this up..."
+        },
+        {
+          "type": "assistant",
+          "content": "The caterer wanted $2,250 up front to hold the date."
+        },
+        {
+          "type": "user",
+          "content": "Thanks! How much did the event raise in the end?"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_emails\",\"args\":{\"query\":\"2001 Foxglove Classic raised final numbers\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_emails",
+          "args": {
+            "query": "2001 Foxglove Classic raised final numbers",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_emails",
+          "status": "ok",
+          "content": "5 emails, best match first. Call read_email with an id for the full text.\n\n[em-11462] 2001-07-02T14:36:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: RE: Foxglove Classic planning\nFinal numbers from Friday: 35 foursomes played, and the 2001 Foxglove Classic raised $64,300 for the Bayou Literacy Fund. Thank you to everyone who played and sponsored. Marisol will present the check...\n\n[em-02299] 2001-06-05T15:05:00Z from hyacinth.oduya@enron.com to marisol.quintanar@enron.com, greta.ullstrom@enron.com, cormac.delahunty@enron.com\nSubject: Foxglove Classic planning\nAll, Planning notes for this year's Foxglove Classic, our golf day for the Bayou Literacy Fund: - Friday, June 29, at Cypress Hollow Golf Club. Shotgun start at 8:00 AM. - 28 foursomes are signed up s...\n\n[em-03228] 2001-06-06T13:27:00Z from cormac.delahunty@enron.com to hyacinth.oduya@enron.com\nSubject: RE: Foxglove Classic planning\nPut me down for a foursome and a hole sponsorship. Cormac\n\n[em-03879] 2001-06-07T00:57:00Z from kathy.reeves@enron.com to brad.jones@enron.com, jonathan.mckay@enron.com\nSubject: RE: Final May p&l\nBrad, Your numbers look fine. See the attached recon Kathy -----Original Message----- From: Jones, Brad Sent: Wednesday, June 06, 2001 9:51 AM To: Reeves, Kathy Subject: FW: Final May p&l -----Origina...\n\n[em-20145] 2001-08-09T11:04:21Z from cuttings.enron@enron.com to matthew.nicholas@enron.com, steven.mccarthy@enron.com, peter.crilly@enron.com, andrew.fairley@enron.com, richard.lewis@enron.com ...\nSubject: Coverage on Teesside explosion from Classic FM 08.08.01\nPlease find the yesterdays news coverage from Classic FM"
+        },
+        {
+          "type": "assistant",
+          "content": "The 2001 Foxglove Classic raised $64,300 for the Bayou Literacy Fund."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 0.04,
+  "usage": {
+    "agent": {
+      "calls": 8,
+      "cached_calls": 8,
+      "cost_usd": 0.0
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 2,
+      "cost_usd": 0.0
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 1,
+      "cost_usd": 0.0
+    }
+  },
+  "checks": [
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['2,250']; 2 replies checked"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['64,300']; 2 replies checked"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The agent’s answers match the rubric, and the email search results support both amounts.",
+    "raw": "CRITERIA:\n1. MET: The agent said the caterer wanted $2,250 up front.\n2. MET: The agent said the event raised $64,300.\nFABRICATION: NO\nREASON: The agent’s answers match the rubric, and the email search results support both amounts.\nVERDICT: PASS"
+  },
+  "success": true
+}

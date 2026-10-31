@@ -1,0 +1,153 @@
+{
+  "persona_id": "memory-my-team",
+  "category": "memory",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "For future reference: I'm on the Customer Success team, based in Rotterdam."
+        },
+        {
+          "kind": "agent",
+          "content": "Got it — I’ll remember that you’re on the Customer Success team and based in Rotterdam.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "For future reference: I'm on the Customer Success team, based in Rotterdam."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user is on the Customer Success team and is based in Rotterdam.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user is on the Customer Success team and is based in Rotterdam."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-1. It will be available in later conversations."
+        },
+        {
+          "type": "assistant",
+          "content": "Got it — I’ll remember that you’re on the Customer Success team and based in Rotterdam."
+        }
+      ],
+      "ending": "goal_met"
+    },
+    {
+      "index": 2,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Who manages my team, and how many people are on it?"
+        },
+        {
+          "kind": "agent",
+          "content": "Hannah Kowalski manages Customer Success as its Director. The team has 15 people.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Who manages my team, and how many people are on it?"
+        },
+        {
+          "type": "assistant",
+          "content": "I’ll look up the Customer Success team’s manager and size."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"Customer Success team manager number of employees team size\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "Customer Success team manager number of employees team size",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\norg-chart (Cardinal Energy Organization Chart; as of 2026-07-01), line 59:\n  ## Revenue Led by Renee Bouchard, Chief Revenue Officer. Headcount: 53. | Team | Manager | Title | Headcount | Main site | |---|---|---|---|---| | Sales | Jamal Whitfield | VP Sales | 18 | Oakland and Rotterdam | | Customer Success | Hannah Kowalski | Director of Customer Success | 15 | Oakland and Rotterdam | | Field Operations | Luis Ortega | Director of Field Operations | 12 | Boulder |\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 1:\n  # On-Call and Incident Process Document number: ENG-300 Effective: 2025-06-01 Owner: Site Reliability Engineering (Grace Nwosu, Director) Audience: Engineering, Customer Success\n\ngridlens-api-spec (GridLens Ingestion API Specification; date 2026-02-20), line 46:\n  [4. Limits] 4.3 List responses are paginated. The default page size is 200 and the maximum is 1,000. The response includes a `next_cursor` value when more results exist. Cursors expire after 15 minutes. 4.4 Enterprise customers may ask for higher limits through their Customer Success Manager. Changes are made per tenant by the Platform on-call engineer.\n\ngridlens-api-spec (GridLens Ingestion API Specification; date 2026-02-20), line 120:\n  [10. Versioning and deprecation] 10.3 API version 1 will be shut down on 2026-12-31. After that date, requests to `/v1` paths return status 410. Version 1 differs from version 2 mainly in authentication (static API keys) and in batch size (1,000 readings). Customer Success is contacting every customer that still sends version 1 traffic.\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 112:\n  ## 14. Contacts - On-call coordinator: Hiro Matsuda, SRE. - Director of SRE: Grace Nwosu. - Customer Success on-call liaison schedule: maintained by Hannah Kowalski, Director of Customer Success."
+        },
+        {
+          "type": "assistant",
+          "content": "Hannah Kowalski manages Customer Success as its Director. The team has 15 people."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 7.89,
+  "usage": {
+    "agent": {
+      "calls": 5,
+      "cached_calls": 2,
+      "cost_usd": 0.000548315
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 1,
+      "cost_usd": 6.38e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.003826
+    }
+  },
+  "checks": [
+    {
+      "type": "first_reply_contains_any",
+      "passed": true,
+      "detail": "expected the first reply to contain one of ['Kowalski']; got: 'Hannah Kowalski manages Customer Success as its Director. The team has 15 people.'"
+    },
+    {
+      "type": "tool_not_called",
+      "passed": true,
+      "detail": "no call to ask_user"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['15', 'fifteen']; 1 replies checked"
+    },
+    {
+      "type": "session2_did_not_reask",
+      "passed": true,
+      "detail": "nothing in session 2 matches 'which team|what team|which department|what is your team'"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The agent’s session 2 answer matches the org-chart passage returned by its search, and it used the team supplied in session 1 without asking the user to repeat it.",
+    "raw": "CRITERIA:\n1. MET: The agent said Hannah Kowalski manages Customer Success and the team has 15 people.\n2. MET: The agent did not ask which team the user is on.\nFABRICATION: NO\nREASON: The agent’s session 2 answer matches the org-chart passage returned by its search, and it used the team supplied in session 1 without asking the user to repeat it.\nVERDICT: PASS"
+  },
+  "success": true
+}

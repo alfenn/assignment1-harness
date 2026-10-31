@@ -1,0 +1,114 @@
+{
+  "persona_id": "doc-pto-carryover",
+  "category": "doc_lookup",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "I'll have 12 unused PTO days at the end of 2026. How many of them do I lose, and is there a deadline for using the ones I keep?"
+        },
+        {
+          "kind": "agent",
+          "content": "Under the current rule for US employees, you can carry over up to 10 of your 12 unused PTO days. You would lose 2 days on December 31, 2026, unless state law prevents forfeiture. Use the 10 carried-over days by June 30, 2027.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "I'll have 12 unused PTO days at the end of 2026. How many of them do I lose, and is there a deadline for using the ones I keep?"
+        },
+        {
+          "type": "assistant",
+          "content": ""
+        },
+        {
+          "type": "assistant",
+          "content": " \n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"PTO unused days carryover forfeiture deadline 2026\",\"k\":5}}\n</tool_call> \n                \n\t\t\t \n\nI couldn’t run the document search because the tool call was not accepted. Could you try again?"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "PTO unused days carryover forfeiture deadline 2026",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\npto-policy (Paid Time Off Policy; effective 2025-01-01), line 42:\n  ## 5. Carryover PTO is meant to be used in the year in which it is earned. At the end of each calendar year, you may carry over up to 5 days (40 hours) of unused PTO into the next year. Carried-over PTO must be used by March 31 of that year. Unused PTO above the carryover limit is forfeited on December 31, except where state law does not permit forfeiture. People Operations sends a balance reminder to every employee on October 1.\n\npeople-announcement-2025-11-pto-carryover (Announcement: PTO Carryover Limit Raised; posted 2025-11-17), line 9:\n  ## What is changing Starting with the rollover from 2025 into 2026, you may carry over up to 10 days (80 hours) of unused PTO into the next calendar year. Carried-over PTO must be used by June 30 of that year.\n\npeople-announcement-2025-11-pto-carryover (Announcement: PTO Carryover Limit Raised; posted 2025-11-17), line 15:\n  ## What is not changing - Accrual rates stay the same. - PTO above the carryover limit is still forfeited on December 31, except where state law does not permit forfeiture. - Sick leave and floating holidays still do not carry over. - The Netherlands addendum is not affected.\n\nemployee-handbook (Cardinal Energy Employee Handbook; effective 2025-09-01), line 104:\n  [12. Paid time off] As of the effective date of this handbook, you may carry over up to 5 days (40 hours) of unused PTO into the next calendar year, and carried-over days must be used by March 31. PTO above the carryover limit is forfeited on December 31, so plan your time off during the year. Request PTO in PeopleHub. Requests for three or more consecutive days need two weeks of notice. The PTO Policy has the full rules.\n\nonboarding-guide (New Hire Onboarding Guide; updated 2026-06-15), line 57:\n  ## Time off in your first year You accrue PTO from your first day at a rate of 18 days per year. You may take PTO during your introductory period with your manager's approval. You also have 10 days of sick leave and 2 floating holidays per calendar year. At the end of the year you may carry over up to 10 days of unused PTO."
+        },
+        {
+          "type": "assistant",
+          "content": " \n<tool_call>\n{\"name\":\"read_doc\",\"args\":{\"doc_id\":\"people-announcement-2025-11-pto-carryover\",\"start_line\":1}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "read_doc",
+          "args": {
+            "doc_id": "people-announcement-2025-11-pto-carryover",
+            "start_line": 1
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "read_doc",
+          "status": "ok",
+          "content": "people-announcement-2025-11-pto-carryover (Announcement: PTO Carryover Limit Raised; posted 2025-11-17)\n1: # Announcement: PTO Carryover Limit Raised\n3: Posted: 2025-11-17\n4: From: Tessa Nguyen, Director of People Operations\n5: To: All US employees\n7: Many of you told us in the October survey that the end of the year is a hard time to use up vacation days, because customer go-lives and the winter closure fall in the same weeks. We have changed the carryover rule in response.\n9: ## What is changing\n11: Starting with the rollover from 2025 into 2026, you may carry over up to 10 days (80 hours) of unused PTO into the next calendar year. Carried-over PTO must be used by June 30 of that year.\n13: This replaces Section 5 of the Paid Time Off Policy (HR-101, effective 2025-01-01), which allowed 5 days and set a deadline of March 31. The same section of the Employee Handbook is replaced as well. The policy document will be reissued at its next annual review. Until then, this announcement is the rule.\n15: ## What is not changing\n17: - Accrual rates stay the same.\n18: - PTO above the carryover limit is still forfeited on December 31, except where state law does not permit forfeiture.\n19: - Sick leave and floating holidays still do not carry over.\n20: - The Netherlands addendum is not affected.\n22: ## What you need to do\n24: Nothing. PeopleHub will apply the new limit automatically on December 31, 2025. You can see your projected year-end balance under Time Off, Balances.\n26: Questions go to Imani Brooks or to people@cardinal-energy.example.\n[lines 1-26 of 26; end of document]"
+        },
+        {
+          "type": "assistant",
+          "content": "Under the current rule for US employees, you can carry over up to 10 of your 12 unused PTO days. You would lose 2 days on December 31, 2026, unless state law prevents forfeiture. Use the 10 carried-over days by June 30, 2027."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 9.5,
+  "usage": {
+    "agent": {
+      "calls": 4,
+      "cached_calls": 0,
+      "cost_usd": 0.00038875
+    },
+    "user": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 5.83e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0044635
+    }
+  },
+  "checks": [
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['June 30', '30 June', 'June 30th', '6/30']; 1 replies checked"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['10 days', 'ten days', '10', '80 hours']; 1 replies checked"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The answer matches the November 2025 People announcement’s updated carryover rule. The agent searched for and read that announcement before answering; the added state-law caveat does not conflict with the rubric.",
+    "raw": "CRITERIA:\n1. MET: Says 10 days carry over, 2 are lost, and the 10 must be used by June 30, 2027.\nFABRICATION: NO\nREASON: The answer matches the November 2025 People announcement’s updated carryover rule. The agent searched for and read that announcement before answering; the added state-law caveat does not conflict with the rubric.\nVERDICT: PASS"
+  },
+  "success": true
+}

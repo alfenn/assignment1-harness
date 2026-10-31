@@ -1,0 +1,158 @@
+{
+  "persona_id": "doc-incident-severity",
+  "category": "doc_lookup",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "ingestion is 40 min behind for all customers. what severity is that and how fast do i have to ack?"
+        },
+        {
+          "kind": "agent",
+          "content": "A 40-minute ingestion delay is SEV2: the policy defines delays over 30 minutes as SEV2. Acknowledge within 15 minutes. SEV2 also requires assigning an incident commander and updating the status page within 30 minutes.",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "when is the postmortem draft due?"
+        },
+        {
+          "kind": "agent",
+          "content": "For this SEV2 incident, the postmortem draft is due within 5 business days of resolution. The incident commander names the author.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "ingestion is 40 min behind for all customers. what severity is that and how fast do i have to ack?"
+        },
+        {
+          "type": "assistant",
+          "content": "I’ll look up the incident severity and acknowledgement-time policy."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"incident severity ingestion delayed all customers acknowledgement response time\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "incident severity ingestion delayed all customers acknowledgement response time",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 52:\n  ## 6. Severity levels The first responder sets the severity. If in doubt, choose the higher severity. It can be lowered later. | Level | Definition | Acknowledge within | Other requirements | |---|---|---|---|\n\nengineering-announcement-2026-02-oncall-stipend (Engineering Announcement: On-Call Stipend Increase; posted 2026-02-09), line 16:\n  [Engineering Announcement: On-Call Stipend Increase] These amounts replace Section 4 of the On-Call and Incident Process (effective 2025-06-01), which set the stipend at $350 for primary and $150 for secondary. Every other part of that document stays in force, including the severity levels, the response times, and the rule that no engineer is on call more than one week in four.\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 58:\n  [6. Severity levels] | SEV1 | Customer-facing outage, loss or corruption of customer data, a security breach, or a fault that affects more than 5 percent of the device fleet | 5 minutes | Incident commander assigned. Status page updated within 15 minutes. CTO notified. |\n\ngridlens-api-spec (GridLens Ingestion API Specification; date 2026-02-20), line 46:\n  [4. Limits] 4.3 List responses are paginated. The default page size is 200 and the maximum is 1,000. The response includes a `next_cursor` value when more results exist. Cursors expire after 15 minutes. 4.4 Enterprise customers may ask for higher limits through their Customer Success Manager. Changes are made per tenant by the Platform on-call engineer.\n\npeople-announcement-2025-11-pto-carryover (Announcement: PTO Carryover Limit Raised; posted 2025-11-17), line 1:\n  # Announcement: PTO Carryover Limit Raised Posted: 2025-11-17 From: Tessa Nguyen, Director of People Operations To: All US employees Many of you told us in the October survey that the end of the year is a hard time to use up vacation days, because customer go-lives and the winter closure fall in the same weeks. We have changed the carryover rule in response."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"read_doc\",\"args\":{\"doc_id\":\"oncall-incident-process\",\"start_line\":45}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "read_doc",
+          "args": {
+            "doc_id": "oncall-incident-process",
+            "start_line": 45
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "read_doc",
+          "status": "ok",
+          "content": "oncall-incident-process (On-Call and Incident Process; effective 2025-06-01)\n46: ## 5. Expectations while on call\n48: The primary must be able to acknowledge a page within the time set for its severity and be at a laptop with a working connection within 15 minutes. Keep your phone charged and PagerLine notifications on. Do not be on call while traveling by air or while impaired. If you become unable to respond, hand the pager to the secondary and tell the rotation channel.\n50: The secondary is the backup. The secondary responds if the primary does not acknowledge, and joins any SEV1 incident on the rotation's systems.\n52: ## 6. Severity levels\n54: The first responder sets the severity. If in doubt, choose the higher severity. It can be lowered later.\n56: | Level | Definition | Acknowledge within | Other requirements |\n57: |---|---|---|---|\n58: | SEV1 | Customer-facing outage, loss or corruption of customer data, a security breach, or a fault that affects more than 5 percent of the device fleet | 5 minutes | Incident commander assigned. Status page updated within 15 minutes. CTO notified. |\n59: | SEV2 | Degraded service with a workaround, a delay in data of more than 30 minutes, or a single customer fully affected | 15 minutes | Incident commander assigned. Status page updated within 30 minutes. |\n60: | SEV3 | Minor fault with no customer impact yet, or an internal tool outage | 4 business hours | Ticket filed. No incident commander needed. |\n62: ## 7. Escalation\n64: PagerLine escalates automatically.\n66: 1. The page goes to the primary.\n67: 2. If the primary has not acknowledged after 5 minutes, the page goes to the secondary.\n68: 3. If neither has acknowledged after a further 10 minutes, the page goes to the engineering manager on call. The managers of the five rotation teams share this duty week by week.\n69: 4. If the page is still unacknowledged, PagerLine calls Grace Nwosu.\n71: Anyone may escalate by hand at any time. Asking for help early is expected and is never held against the responder.\n73: ## 8. Running an incident\n75: **Open a channel.** For SEV1 and SEV2, open a chat channel named `#inc-YYYYMMDD-short-name`, for example `#inc-20250714-ingest-lag`. All discussion of the incident goes in this channel.\n[lines 45-76 of 116; continue with read_doc(doc_id='oncall-incident-process', start_line=77)]"
+        },
+        {
+          "type": "assistant",
+          "content": "A 40-minute ingestion delay is SEV2: the policy defines delays over 30 minutes as SEV2. Acknowledge within 15 minutes. SEV2 also requires assigning an incident commander and updating the status page within 30 minutes."
+        },
+        {
+          "type": "user",
+          "content": "when is the postmortem draft due?"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"incident postmortem draft due deadline SEV2\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "incident postmortem draft due deadline SEV2",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 94:\n  ## 10. After the incident A written postmortem is required for every SEV1 and SEV2. The incident commander names the author, who is usually the operations lead. The draft is due within 5 business days of resolution. Postmortems are blameless: they describe what happened, what the systems and the process allowed, and what will change. They do not assign fault to a person.\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 98:\n  [10. After the incident] Postmortems are presented at Incident Review, which is held on Thursdays at 13:00 Pacific. Every action item has an owner and a due date and is tracked in the engineering issue tracker with the label `postmortem-action`. SRE reports on overdue action items at the start of each Incident Review.\n\nfirmware-spec-emberos (EmberOS 3 Firmware Specification; date 2026-04-08), line 107:\n  [9. Over-the-air updates] 9.4 Rollouts are staged. The stages are 1 percent, 10 percent, 50 percent, and 100 percent of the fleet for the customer or region. Each stage must soak for at least 24 hours with no rollback and no rise in error rates before the next stage starts. The Firmware on-call engineer approves each stage. 9.5 No rollout may start or advance during an open SEV1 or SEV2 incident. See the On-Call and Incident Process.\n\nonboarding-guide (New Hire Onboarding Guide; updated 2026-06-15), line 44:\n  ## Your first 30 days - Enroll in benefits. You have 30 days from your start date. After that you must wait for open enrollment. - Complete security awareness training. It is due within 30 days of joining. - Complete harassment prevention training. It is due within 60 days, and most people do it in the first month. - Your home office stipend of $500 arrives with your first full paycheck if you are hybrid or remote.\n\nfinance-memo-2026-08-approval-thresholds (Finance Memo: Expense Approval Thresholds; posted 2026-08-17), line 21:\n  ## What does not change - The CFO approval threshold stays at $5,000. - All spending limits in the March policy stay as they are, including lodging, meals, mileage, and customer entertainment. - The 45-day submission deadline and the receipt rules stay as they are."
+        },
+        {
+          "type": "assistant",
+          "content": "For this SEV2 incident, the postmortem draft is due within 5 business days of resolution. The incident commander names the author."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 12.39,
+  "usage": {
+    "agent": {
+      "calls": 6,
+      "cached_calls": 0,
+      "cost_usd": 0.0005978299999999999
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 0,
+      "cost_usd": 0.0001261
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.004911
+    }
+  },
+  "checks": [
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['SEV2', 'SEV 2', 'SEV-2', 'severity 2']; 2 replies checked"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['15 minutes', '15 min', 'fifteen minutes']; 2 replies checked"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['5 business days', 'five business days', '5 working days', 'five working days']; 2 replies checked"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The agent’s answers match the rubric, and its document searches and read call were on the relevant incident policy and postmortem deadline.",
+    "raw": "CRITERIA:\n1. MET: The agent identified SEV2 and a 15-minute acknowledgment deadline.\n2. MET: The agent said the draft is due within 5 business days of resolution.\nFABRICATION: NO\nREASON: The agent’s answers match the rubric, and its document searches and read call were on the relevant incident policy and postmortem deadline.\nVERDICT: PASS"
+  },
+  "success": true
+}

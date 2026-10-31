@@ -1,0 +1,153 @@
+{
+  "persona_id": "memory-my-team",
+  "category": "memory",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "For future reference: I'm on the Customer Success team, based in Rotterdam."
+        },
+        {
+          "kind": "agent",
+          "content": "Got it — I’ll remember that you’re on the Customer Success team and based in Rotterdam.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "For future reference: I'm on the Customer Success team, based in Rotterdam."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user is on the Customer Success team and is based in Rotterdam.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user is on the Customer Success team and is based in Rotterdam."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-1. It will be available in later conversations."
+        },
+        {
+          "type": "assistant",
+          "content": "Got it — I’ll remember that you’re on the Customer Success team and based in Rotterdam."
+        }
+      ],
+      "ending": "goal_met"
+    },
+    {
+      "index": 2,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Who manages my team, and how many people are on it?"
+        },
+        {
+          "kind": "agent",
+          "content": "Hannah Kowalski manages Customer Success as Director of Customer Success. The team has 15 people, including the manager.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Who manages my team, and how many people are on it?"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>\n\n<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>\n\n<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>\n\n<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"recall\",\"args\":{\"query\":\"Customer Success team manager team size Rotterdam\"}}\n</tool_call>\n\n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"Customer Success team manager members organization\",\"k\":5}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"Customer Success team manager members organization\",\"k\":5}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"email_qa\",\"args\":{\"question\":\"Who manages the Customer Success team, and how many people are on it?\"}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"email_qa\",\"args\":{\"question\":\"Who manages the Customer Success team, and how many people are on it?\"}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"search_emails\",\"args\":{\"query\":\"Customer Success team manager\",\"k\":5}}\n</tool_call>⏎\n\n\n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"Customer Success manager team members\",\"k\":5}}\n</tool_call>⏎\n"
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"malformed\">\nYour last reply had a malformed tool call: the reply contains more than one <tool_call> block; write exactly one call per reply\nWrite exactly one <tool_call> block holding valid JSON, or answer in plain text.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"Customer Success team manager people organization\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "Customer Success team manager people organization",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\norg-chart (Cardinal Energy Organization Chart; as of 2026-07-01), line 59:\n  ## Revenue Led by Renee Bouchard, Chief Revenue Officer. Headcount: 53. | Team | Manager | Title | Headcount | Main site | |---|---|---|---|---| | Sales | Jamal Whitfield | VP Sales | 18 | Oakland and Rotterdam | | Customer Success | Hannah Kowalski | Director of Customer Success | 15 | Oakland and Rotterdam | | Field Operations | Luis Ortega | Director of Field Operations | 12 | Boulder |\n\norg-chart (Cardinal Energy Organization Chart; as of 2026-07-01), line 1:\n  # Cardinal Energy Organization Chart As of: 2026-07-01 Maintained by: People Operations Total headcount: 200 This page lists every organization and team, its manager, and its headcount. Team headcounts include the manager. Contractors and interns are not counted. People Operations updates the page on the first day of each quarter.\n\ngridlens-product-faq (GridLens Product FAQ; updated 2026-05-20), line 1:\n  # GridLens Product FAQ Updated: 2026-05-20 Owner: Product Management (Elena Vasquez, Product Manager) Audience: Sales, Customer Success, and anyone who answers customer questions\n\noncall-incident-process (On-Call and Incident Process; effective 2025-06-01), line 112:\n  ## 14. Contacts - On-call coordinator: Hiro Matsuda, SRE. - Director of SRE: Grace Nwosu. - Customer Success on-call liaison schedule: maintained by Hannah Kowalski, Director of Customer Success.\n\nonboarding-guide (New Hire Onboarding Guide; updated 2026-06-15), line 73:\n  ## For people in customer-facing roles - Week 1: read the GridLens Product FAQ. It has the approved answers to common customer questions. - Week 2 and 3: sit in on four customer calls with a colleague. - Week 4: give the standard product demonstration to your manager. - Sales hires complete pricing and deal desk training with Jamal Whitfield's team before sending a first quote."
+        },
+        {
+          "type": "assistant",
+          "content": "Hannah Kowalski manages Customer Success as Director of Customer Success. The team has 15 people, including the manager."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 18.01,
+  "usage": {
+    "agent": {
+      "calls": 5,
+      "cached_calls": 0,
+      "cost_usd": 0.0011018750000000002
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 1,
+      "cost_usd": 5.34e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0037735
+    }
+  },
+  "checks": [
+    {
+      "type": "first_reply_contains_any",
+      "passed": true,
+      "detail": "expected the first reply to contain one of ['Kowalski']; got: 'Hannah Kowalski manages Customer Success as Director of Customer Success. The team has 15 people, including the manager.'"
+    },
+    {
+      "type": "tool_not_called",
+      "passed": true,
+      "detail": "no call to ask_user"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['15', 'fifteen']; 1 replies checked"
+    },
+    {
+      "type": "session2_did_not_reask",
+      "passed": true,
+      "detail": "nothing in session 2 matches 'which team|what team|which department|what is your team'"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The agent used the team saved in session 1, and its session 2 search result supports both the manager’s name and the team size.",
+    "raw": "CRITERIA:\n1. MET: The agent said Hannah Kowalski manages Customer Success and the team has 15 people.\n2. MET: The agent did not ask which team the user was on.\nFABRICATION: NO\nREASON: The agent used the team saved in session 1, and its session 2 search result supports both the manager’s name and the team size.\nVERDICT: PASS"
+  },
+  "success": true
+}

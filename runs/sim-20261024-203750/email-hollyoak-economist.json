@@ -1,0 +1,112 @@
+{
+  "persona_id": "email-hollyoak-economist",
+  "category": "email_multihop",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "When is our filing due in the Hollyoak rate case?"
+        },
+        {
+          "kind": "steer",
+          "content": "Actually, skip the filing date. What I need is how much the outside economist we retained for the Hollyoak case is charging."
+        },
+        {
+          "kind": "agent",
+          "content": "The outside economist is charging $28,500 for the written analysis and one day of hearing. Additional hearing days cost $3,400 each.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "When is our filing due in the Hollyoak rate case?"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"Hollyoak rate case filing due deadline\",\"k\":5}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "Hollyoak rate case filing due deadline",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\nonboarding-guide (New Hire Onboarding Guide; updated 2026-06-15), line 44:\n  ## Your first 30 days - Enroll in benefits. You have 30 days from your start date. After that you must wait for open enrollment. - Complete security awareness training. It is due within 30 days of joining. - Complete harassment prevention training. It is due within 60 days, and most people do it in the first month. - Your home office stipend of $500 arrives with your first full paycheck if you are hybrid or remote.\n\nemployee-handbook (Cardinal Energy Employee Handbook; effective 2025-09-01), line 82:\n  [9. Performance and growth] Promotions are considered in both cycles. Your manager writes the promotion case, and a panel of leaders from your organization reviews it against the published level guide for your job family. If your manager has concerns about your performance, they will tell you directly and in writing, agree on specific goals with you, and set a date to review them.\n\nfinance-memo-2026-08-approval-thresholds (Finance Memo: Expense Approval Thresholds; posted 2026-08-17), line 21:\n  ## What does not change - The CFO approval threshold stays at $5,000. - All spending limits in the March policy stay as they are, including lodging, meals, mileage, and customer entertainment. - The 45-day submission deadline and the receipt rules stay as they are.\n\nparental-leave-policy (Parental Leave Policy; effective 2025-01-01), line 33:\n  ## 5. Timing Leave must be taken within 12 months of the birth or placement. You may take it as one continuous period or split it into at most 2 blocks. Each block must be at least two weeks long. A birthing parent may start leave up to four weeks before the expected due date.\n\npeople-announcement-2025-11-pto-carryover (Announcement: PTO Carryover Limit Raised; posted 2025-11-17), line 13:\n  [What is changing] This replaces Section 5 of the Paid Time Off Policy (HR-101, effective 2025-01-01), which allowed 5 days and set a deadline of March 31. The same section of the Employee Handbook is replaced as well. The policy document will be reissued at its next annual review. Until then, this announcement is the rule."
+        },
+        {
+          "type": "user",
+          "content": "Actually, skip the filing date. What I need is how much the outside economist we retained for the Hollyoak case is charging."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"email_qa\",\"args\":{\"question\":\"How much is the outside economist retained for the Hollyoak rate case charging?\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "email_qa",
+          "args": {
+            "question": "How much is the outside economist retained for the Hollyoak rate case charging?"
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "email_qa",
+          "status": "ok",
+          "content": "Answer: $28,500 for the written analysis and one day of hearing; additional hearing days are $3,400 each\nSupporting emails: em-14177, em-15220"
+        },
+        {
+          "type": "assistant",
+          "content": "The outside economist is charging $28,500 for the written analysis and one day of hearing. Additional hearing days cost $3,400 each."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 7.49,
+  "usage": {
+    "agent": {
+      "calls": 5,
+      "cached_calls": 2,
+      "cost_usd": 0.0002591
+    },
+    "user": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 5.78e-05
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.003511
+    }
+  },
+  "checks": [
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['28,500']; 1 replies checked"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The email_qa result supports the stated $28,500 fee and the additional hearing-day charge. The agent gave the requested fee to the user.",
+    "raw": "CRITERIA:\n1. MET: The agent stated the $28,500 engagement fee.\n2. MET: The agent answered the redirected fee question, not the filing-date question.\nFABRICATION: NO\nREASON: The email_qa result supports the stated $28,500 fee and the additional hearing-day charge. The agent gave the requested fee to the user.\nVERDICT: PASS"
+  },
+  "success": true
+}

@@ -1,0 +1,104 @@
+{
+  "persona_id": "clarify-which-spec",
+  "category": "clarify",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "what's the max size in the spec?"
+        },
+        {
+          "kind": "agent",
+          "content": "Which spec do you mean? I can look up its maximum size once I know the product or spec name.",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "The EmberOS firmware spec for the Meridian M4."
+        },
+        {
+          "kind": "agent",
+          "content": "The EmberOS 3 Firmware Specification says the Meridian M4’s maximum firmware image size is 480 KB.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "what's the max size in the spec?"
+        },
+        {
+          "type": "assistant",
+          "content": "Which spec do you mean? I can look up its maximum size once I know the product or spec name."
+        },
+        {
+          "type": "user",
+          "content": "The EmberOS firmware spec for the Meridian M4."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"EmberOS firmware spec Meridian M4 max size\",\"k\":5}}\n</tool_call} \n</tool_call> \n</tool_call> \n\n\n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"EmberOS firmware spec Meridian M4 max size\",\"k\":5}}\n</tool_call> \n</tool_call> \n</tool_call> \n\n\n<tool_call>\n{\"name\":\"search_docs\",\"args\":{\"query\":\"EmberOS firmware spec Meridian M4 max size\",\"k\":5}}\n</tool_call> \n</tool_call} \n</tool_call> \n</tool_call} \n</tool_call} \nCould just deliver correctly.\n\nI couldn’t run the document search because the tool call format failed. Please try asking again, and I’ll look up the EmberOS firmware spec for the Meridian M4."
+        },
+        {
+          "type": "tool_call",
+          "name": "search_docs",
+          "args": {
+            "query": "EmberOS firmware spec Meridian M4 max size",
+            "k": 5
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "search_docs",
+          "status": "ok",
+          "content": "5 passages, best match first. Call read_doc with a doc_id and start_line to read around one. When documents disagree, the one with the later date (a newer policy, announcement or memo) is the current rule.\n\nfirmware-spec-emberos (EmberOS 3 Firmware Specification; date 2026-04-08), line 103:\n  [9. Over-the-air updates] 9.2 The M4 has two firmware partitions, A and B. An update is written to the inactive partition while the device continues to run from the active one. The maximum image size for the M4 is 480 KB. The S2 has a single partition and a recovery loader, and its image is delivered through the parent M4.\n\nfirmware-spec-emberos (EmberOS 3 Firmware Specification; date 2026-04-08), line 1:\n  # EmberOS 3 Firmware Specification Document number: FW-SPEC-003 Revision: 3.2 Date: 2026-04-08 Owner: Firmware team (Nadia Ferreira, Firmware Engineering Manager) Author: Sam Okonkwo, Senior Firmware Engineer Status: Approved. Describes EmberOS 3.2.0.\n\norg-chart (Cardinal Energy Organization Chart; as of 2026-07-01), line 42:\n  [Engineering] - **Apps** builds the GridLens web application and FieldKit, the technician companion application for phones and tablets that installers use on site. - **Firmware** builds EmberOS, the firmware for the Meridian M4 and the Pulse S2. Sam Okonkwo, Senior Firmware Engineer, leads over-the-air updates. Mei-Ling Chou, Firmware Engineer, leads firmware for Project Heron.\n\nproject-heron-brief (Project Heron Brief; date 2026-06-02), line 35:\n  ...needs EmberOS 3.3, which adds a driver for the new radio, the voltage measurement, and a change to the mesh report format to carry voltage. The Meridian M4 must also run EmberOS 3.3 to accept the new report format. Older M4 firmware ignores the voltage field and accepts the rest of the report. Mei-Ling Chou leads this work, and the changes will be written into the next revision of the firmware specification before code review starts.\n\ngridlens-api-spec (GridLens Ingestion API Specification; date 2026-02-20), line 14:\n  [1. Scope] Cardinal devices do not use this interface. They connect to the device broker with the protocol defined in the EmberOS 3 Firmware Specification (FW-SPEC-003). Both paths feed the same pipeline, which is described in the GridLens Architecture Overview."
+        },
+        {
+          "type": "assistant",
+          "content": "The EmberOS 3 Firmware Specification says the Meridian M4’s maximum firmware image size is 480 KB."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 11.32,
+  "usage": {
+    "agent": {
+      "calls": 3,
+      "cached_calls": 0,
+      "cost_usd": 0.00035467
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 0,
+      "cost_usd": 0.0001349
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.003921
+    }
+  },
+  "checks": [
+    {
+      "type": "final_contains_any",
+      "passed": true,
+      "detail": "expected the final reply to contain one of ['480']; got: 'The EmberOS 3 Firmware Specification says the Meridian M4’s maximum firmware image size is 480 KB.'"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The answer meets both rubric criteria, and the agent made a relevant search call that could have supplied the stated limit.",
+    "raw": "CRITERIA:\n1. MET: The agent told the user the maximum firmware image size for the Meridian M4 is 480 KB.\n2. MET: The agent asked which spec the user meant before answering.\nFABRICATION: NO\nREASON: The answer meets both rubric criteria, and the agent made a relevant search call that could have supplied the stated limit.\nVERDICT: PASS"
+  },
+  "success": true
+}

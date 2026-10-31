@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "facts": [
+    {
+      "id": "m-1",
+      "fact": "The user's employee number is 30918.",
+      "saved": "2026-10-25T03:38Z"
+    },
+    {
+      "id": "m-2",
+      "fact": "The user's employee number is 31908, replacing the previously saved number 30918.",
+      "saved": "2026-10-25T03:38Z"
+    }
+  ]
+}

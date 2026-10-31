@@ -1,0 +1,172 @@
+{
+  "persona_id": "memory-corrected-number",
+  "category": "memory",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Keep this for later: my employee number is 30918."
+        },
+        {
+          "kind": "agent",
+          "content": "Got it—I’ll remember your employee number is 30918.",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "Sorry, I swapped two digits—the right employee number is 31908, not 30918. Please remember that one instead."
+        },
+        {
+          "kind": "agent",
+          "content": "Your current employee number is 31908.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Keep this for later: my employee number is 30918."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user's employee number is 30918.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user's employee number is 30918."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-1. It will be available in later conversations."
+        },
+        {
+          "type": "assistant",
+          "content": "Got it—I’ll remember your employee number is 30918."
+        },
+        {
+          "type": "user",
+          "content": "Sorry, I swapped two digits—the right employee number is 31908, not 30918. Please remember that one instead."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"remember\",\"args\":{\"fact\":\"The user's employee number is 31908, replacing the previously saved number 30918.\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "remember",
+          "args": {
+            "fact": "The user's employee number is 31908, replacing the previously saved number 30918."
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "remember",
+          "status": "ok",
+          "content": "Saved as m-2. It will be available in later conversations.\nRelated facts already saved (if one conflicts with the new fact, the new one is current):\n- [m-1, 2026-10-25] The user's employee number is 30918."
+        },
+        {
+          "type": "assistant",
+          "content": "I’ll use 31908 as your current employee number; it replaces the earlier number, 30918."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "Your current employee number is 31908; I’ll treat it as replacing 30918."
+        },
+        {
+          "type": "error",
+          "content": "<tool_result status=\"no_call\">\nYour last reply said what you would do next but contained no <tool_call> block, so no tool ran and the user has no answer yet. A tool call is plain text in your reply, and it always works:\n<tool_call>\n{\"name\": \"TOOL_NAME\", \"args\": {...}}\n</tool_call>\nWrite that block now, or, if you already have what you need, write the final answer itself.\n</tool_result>"
+        },
+        {
+          "type": "assistant",
+          "content": "Your current employee number is 31908."
+        }
+      ],
+      "ending": "goal_met"
+    },
+    {
+      "index": 2,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "I'm filling in a benefits form. What's my employee number?"
+        },
+        {
+          "kind": "agent",
+          "content": "Your employee number is 31908.",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "I'm filling in a benefits form. What's my employee number?"
+        },
+        {
+          "type": "assistant",
+          "content": "Your employee number is 31908."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 16.14,
+  "usage": {
+    "agent": {
+      "calls": 7,
+      "cached_calls": 0,
+      "cost_usd": 0.00071337
+    },
+    "user": {
+      "calls": 3,
+      "cached_calls": 1,
+      "cost_usd": 0.0001342
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0036485
+    }
+  },
+  "checks": [
+    {
+      "type": "first_reply_contains_any",
+      "passed": true,
+      "detail": "expected the first reply to contain one of ['31908']; got: 'Your employee number is 31908.'"
+    },
+    {
+      "type": "no_reply_contains_any",
+      "passed": true,
+      "detail": "no agent reply contains any of ['30918']"
+    },
+    {
+      "type": "tool_not_called",
+      "passed": true,
+      "detail": "no call to ask_user"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The user supplied the corrected number in session 1, and the agent saved it to persistent memory. Repeating that earlier user-provided fact is not fabrication.",
+    "raw": "CRITERIA:\n1. MET: In session 2, the agent gave 31908 and did not give 30918.\nFABRICATION: NO\nREASON: The user supplied the corrected number in session 1, and the agent saved it to persistent memory. Repeating that earlier user-provided fact is not fabrication.\nVERDICT: PASS"
+  },
+  "success": true
+}

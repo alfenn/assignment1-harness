@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "facts": [
+    {
+      "id": "m-1",
+      "fact": "The user is on the Customer Success team and is based in Rotterdam.",
+      "saved": "2026-10-27T01:54Z"
+    }
+  ]
+}

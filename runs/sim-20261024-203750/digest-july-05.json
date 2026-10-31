@@ -1,0 +1,135 @@
+{
+  "persona_id": "digest-july-05",
+  "category": "digest",
+  "sessions": [
+    {
+      "index": 1,
+      "mode": "auto",
+      "dialogue": [
+        {
+          "kind": "user",
+          "content": "Summarize the email archive for 2001-07-05 for me."
+        },
+        {
+          "kind": "agent",
+          "content": "On July 5, 2001, the archive contains 252 emails. The most time-sensitive items included:\n\n- Confirm the August swap volume for Castellan Refining before noon, correct EEX E&P pricing and send the customer confirmation, and provide non-commercial VP rankings guidance for a 10:00 meeting.\n- Send June throughput data for the Larchfield audit that evening, and address Originations Schedule and ETS Risk Management comments needed for PRC and a same-day RAC submission.\n- Move the X12 file-exchange plan forward, review the CA bond legislation language and Sher bond bill amendment, and arrange a conference call with Perfect Commerce for July 6.\n- Handle a transmission resupply before morning schedule flows, prepare Eric Boyt’s TEAC Prepay quote for July 6, and exchange cell numbers with the Arrowfest limo driver for a 1:30 pickup.\n- Confirm whether Jaime sent the Mexico accomplishments file, due Monday.\n\nOther messages covered regulatory and legislative updates, California and market news, meetings, project and deal follow-ups, expenses, and personal correspondence.",
+          "status": "done"
+        },
+        {
+          "kind": "user",
+          "content": "What does our group need to send for the Larchfield audit, and when is the response due?"
+        },
+        {
+          "kind": "agent",
+          "content": "Your group needs to send the June throughput data. The response is due by 9:00 AM tomorrow (July 6, 2001).",
+          "status": "done"
+        }
+      ],
+      "transcript": [
+        {
+          "type": "user",
+          "content": "Summarize the email archive for 2001-07-05 for me."
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"daily_digest\",\"args\":{\"date\":\"2001-07-05\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "daily_digest",
+          "args": {
+            "date": "2001-07-05"
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "daily_digest",
+          "status": "ok",
+          "content": "Digest of the 252 emails on 2001-07-05:\n\nUrgent:\n- Perfect Commerce: arrange Friday, July 6 conference call using the proposed slots; promptly.\n- CA Bond Legislation Language: review and comment quickly; Mike Day to draft language this morning.\n- X12 file exchange: discuss the game plan and move exchanges forward this week.\n- Castellan Refining: confirm the correct August swap volume before noon today.\n- EEX E&P: correct pricing and send the confirmation to the customer today.\n- Sher Bond bill: review the amendment ASAP so it can be shared.\n- Things that need your attention this week: complete the listed personal tasks this week.\n- Arrowfest 2001: exchange cell numbers with the limo driver for today’s 1:30 pickup.\n- Canada-VP Pre-PRC: say whether non-commercial VP rankings are needed for today’s 10:00 meeting.\n- Mexico: confirm whether Jaime sent his accomplishments; file is due Monday.\n- Larchfield audit: send June throughput data tonight for the 9:00 AM tomorrow filing.\n- Originations Schedule: handle the requested information today for PRC.\n- ETS Risk Management Procedures and Controls: send comments ASAP for today’s Enron RAC submission.\n- Dynegy deal # 570332.1 / WWP deal # 339963.1: obtain resupplied transmission before the morning schedule flows.\n- TEAC Prepay: prepare Eric Boyt’s quote for tomorrow using July 5 closing prices.\n\nAlso today:\n- Personal note; Ken Lay/Barbour; CPUC and California updates; Fireball Coal Project; expense notices.\n- Regulatory filings, legislative correspondence, market updates, meetings, personal mail, and routine work follow-ups."
+        },
+        {
+          "type": "assistant",
+          "content": "On July 5, 2001, the archive contains 252 emails. The most time-sensitive items included:\n\n- Confirm the August swap volume for Castellan Refining before noon, correct EEX E&P pricing and send the customer confirmation, and provide non-commercial VP rankings guidance for a 10:00 meeting.\n- Send June throughput data for the Larchfield audit that evening, and address Originations Schedule and ETS Risk Management comments needed for PRC and a same-day RAC submission.\n- Move the X12 file-exchange plan forward, review the CA bond legislation language and Sher bond bill amendment, and arrange a conference call with Perfect Commerce for July 6.\n- Handle a transmission resupply before morning schedule flows, prepare Eric Boyt’s TEAC Prepay quote for July 6, and exchange cell numbers with the Arrowfest limo driver for a 1:30 pickup.\n- Confirm whether Jaime sent the Mexico accomplishments file, due Monday.\n\nOther messages covered regulatory and legislative updates, California and market news, meetings, project and deal follow-ups, expenses, and personal correspondence."
+        },
+        {
+          "type": "user",
+          "content": "What does our group need to send for the Larchfield audit, and when is the response due?"
+        },
+        {
+          "type": "assistant",
+          "content": "<tool_call>\n{\"name\":\"email_qa\",\"args\":{\"question\":\"What does our group need to send for the Larchfield audit, and when is the response due?\"}}\n</tool_call>"
+        },
+        {
+          "type": "tool_call",
+          "name": "email_qa",
+          "args": {
+            "question": "What does our group need to send for the Larchfield audit, and when is the response due?"
+          }
+        },
+        {
+          "type": "tool_result",
+          "name": "email_qa",
+          "status": "ok",
+          "content": "Answer: June throughput data; response due 9:00 AM tomorrow\nSupporting emails: em-12167"
+        },
+        {
+          "type": "assistant",
+          "content": "Your group needs to send the June throughput data. The response is due by 9:00 AM tomorrow (July 6, 2001)."
+        }
+      ],
+      "ending": "goal_met"
+    }
+  ],
+  "error": null,
+  "seconds": 12.01,
+  "usage": {
+    "agent": {
+      "calls": 258,
+      "cached_calls": 254,
+      "cost_usd": 0.000412115
+    },
+    "user": {
+      "calls": 2,
+      "cached_calls": 0,
+      "cost_usd": 0.0001829
+    },
+    "judge": {
+      "calls": 1,
+      "cached_calls": 0,
+      "cost_usd": 0.0044585
+    }
+  },
+  "checks": [
+    {
+      "type": "tool_called",
+      "passed": true,
+      "detail": "found daily_digest({\"date\": \"2001-07-05\"}) -> ok"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['throughput']; 2 replies checked"
+    },
+    {
+      "type": "any_reply_contains_any",
+      "passed": true,
+      "detail": "expected some agent reply to contain one of ['9:00', '9 AM', '9 a.m.', '9am']; 2 replies checked"
+    },
+    {
+      "type": "no_reply_contains_any",
+      "passed": true,
+      "detail": "no agent reply contains any of ['QuillJet', 'Sunfare']"
+    },
+    {
+      "type": "no_agent_error",
+      "passed": true,
+      "detail": "every send ended with status 'done'"
+    }
+  ],
+  "judge": {
+    "passed": true,
+    "reason": "The daily digest supports the email summary, and the email QA result directly supports the Larchfield audit answer. Both required responses were given to the user.",
+    "raw": "CRITERIA:\n1. MET: The first reply summarizes the July 5 emails rather than refusing or listing raw results.\n2. MET: The agent says to send June throughput data by 9:00 AM on July 6.\n\nFABRICATION: NO\nREASON: The daily digest supports the email summary, and the email QA result directly supports the Larchfield audit answer. Both required responses were given to the user.\n\nVERDICT: PASS"
+  },
+  "success": true
+}
