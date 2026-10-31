@@ -75,7 +75,7 @@ You can call the tools listed below. You call a tool by writing plain text in yo
 {{"name": "TOOL_NAME", "args": {{"ARG_NAME": "value"}}}}
 {CLOSE}
 
-The block holds one JSON object with the keys "name" (the tool name) and "args" (an object with the tool's arguments). End your reply right after {CLOSE} and wait for the result.
+The block holds one JSON object with the keys "name" (the tool name) and "args" (an object with the tool's arguments). After {CLOSE}, write the single line "Waiting for the result." and end your reply there; the result comes in the next message.
 
 Rules for a call:
 - Write the block itself in this reply. Saying that you will call a tool ("I'll look that up") does nothing; only the block runs the tool. No preamble is needed.
@@ -91,14 +91,11 @@ Example: if the user asks "what is 2 plus 3?" and an add tool exists, your whole
 {OPEN}
 {{"name": "add", "args": {{"a": 2, "b": 3}}}}
 {CLOSE}
+Waiting for the result.
 
 # Available tools
 
-{tools}
-
-# Reminder
-
-To use a tool, your reply must contain the {OPEN} ... {CLOSE} block with valid JSON. Without the block, no tool runs."""
+{tools}"""
 
 
 # ----------------------------------------------------------------- parse ----

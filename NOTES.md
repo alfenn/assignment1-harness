@@ -205,6 +205,34 @@ miss. We never found out which request caused it.
 loop must catch `OutputTruncated` and treat it as a malformed reply, so one
 runaway answer doesn't end a whole session.
 
+### 7. The model can't stop after `</tool_call>`
+
+**The task.** The Gradescope run of the live test hit entry 6 again
+(10,705 characters, 4096 tokens), so the prompt had to make runaways rarer.
+
+**The decision.** Every runaway and every doubled call in our samples began
+the same way: a correct block, then the model kept writing past `</tool_call>`
+(stray tokens like `⟂`, notes to itself like "Oops exact closing", the block
+again, then whitespace or the block again until `max_tokens`). Three fixes
+made it worse: telling it harder to stop at `</tool_call>` and calling extra
+text invalid (12–17/20, five truncations in 100 calls); renaming the tags to
+`<call>` (16–20/20); and dropping the closing "Reminder" on its own (no
+change). What worked was giving the reply a plain-text ending. The prompt now
+says to write the line "Waiting for the result." after `</tool_call>` and
+stop, and the example shows that line. The parser already keeps text after
+the block as `text`, so nothing else changed. The "Reminder" section is gone.
+
+**The result.** Each run is 20 uncached requests, scored with `check_reply`.
+
+| prompt | runs | scores | truncated calls |
+|---|---|---|---|
+| old | 10 | 15–20; 5 runs below 18 | 4 of 200 |
+| new | 20 | 19–20 | 1 of 400 |
+
+**Remediation.** The new prompt doesn't rule runaways out (1 in 400 calls
+remains), but at that rate a 20-call run truncates about 5% of the time,
+down from about 40%.
+
 ### Where P6 ended up
 
 - **Deterministic tests:** all pass.
