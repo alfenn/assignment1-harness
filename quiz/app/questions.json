@@ -49,17 +49,72 @@
         ],
         "points": "3 points: 1 deterministic, 2 live",
         "provided": [
-          "The `run_priority(email, lm)` stub in `cs329z_hw1/adapters.py`; its docstring lists the rules the tests check",
-          "The `LM` wrapper (`llm.py`): messages in, string out, with a disk cache, a cost ledger, `BudgetExceeded` and `OutputTruncated`",
-          "`data/priority_rubric.md`, the full labelling rubric with examples",
-          "The `Email` type (`types.py`) and `data.load_emails`",
-          "`show priority <email-id>` and `tests/test_priority.py`: scripted replies in no particular format, and a live set of 60 gold emails"
+          {
+            "text": "The `run_priority(email, lm)` stub in `cs329z_hw1/adapters.py`; its docstring lists the rules the tests check",
+            "refs": [
+              "cs329z_hw1/adapters.py:48-66 run_priority stub and its rules"
+            ]
+          },
+          {
+            "text": "The `LM` wrapper (`llm.py`): messages in, string out, with a disk cache, a cost ledger, `BudgetExceeded` and `OutputTruncated`",
+            "refs": [
+              "cs329z_hw1/llm.py:13-26 what the wrapper does",
+              "cs329z_hw1/llm.py:92-122 BudgetExceeded, OutputTruncated",
+              "cs329z_hw1/llm.py:268-316 LM.__call__"
+            ]
+          },
+          {
+            "text": "`data/priority_rubric.md`, the full labelling rubric with examples",
+            "refs": [
+              "data/priority_rubric.md:1-81 the rubric"
+            ]
+          },
+          {
+            "text": "The `Email` type (`types.py`) and `data.load_emails`",
+            "refs": [
+              "cs329z_hw1/types.py:28-39 Email",
+              "cs329z_hw1/data.py:39-45 load_emails"
+            ]
+          },
+          {
+            "text": "`show priority <email-id>` and `tests/test_priority.py`: scripted replies in no particular format, and a live set of 60 gold emails",
+            "refs": [
+              "cs329z_hw1/show.py:66-82 show_priority",
+              "tests/test_priority.py:45-90 scripted replies and the contract",
+              "tests/test_priority.py:103-133 live accuracy"
+            ]
+          }
         ],
-        "decision": "No “Design decision” line. The box leaves the prompt and the parser to you: the LM returns a plain string, and you decide how the prompt asks for the label and the reason and how your code reads the reply.",
+        "decision": {
+          "text": "No “Design decision” line. The box leaves the prompt and the parser to you: the LM returns a plain string, and you decide how the prompt asks for the label and the reason and how your code reads the reply.",
+          "refs": [
+            "cs329z_hw1/pipelines/priority.py:14-20 your prompt",
+            "cs329z_hw1/pipelines/priority.py:23-27 reply patterns",
+            "cs329z_hw1/pipelines/priority.py:45-57 your parser"
+          ]
+        },
         "asked": [
-          "Classify one email as urgent, normal or ignore for its recipient, at the time it was sent, with a one-sentence reason, in one LM call",
-          "Return `unknown` when the reply states no label, and always a non-empty reason",
-          "Live: no `unknown`, and at least 85% agreement on 60 emails, 20 per label"
+          {
+            "text": "Classify one email as urgent, normal or ignore for its recipient, at the time it was sent, with a one-sentence reason, in one LM call",
+            "refs": [
+              "cs329z_hw1/pipelines/priority.py:60-72 classify_priority",
+              "cs329z_hw1/pipelines/priority.py:30-42 _format_email"
+            ]
+          },
+          {
+            "text": "Return `unknown` when the reply states no label, and always a non-empty reason",
+            "refs": [
+              "cs329z_hw1/pipelines/priority.py:45-57 parse_priority",
+              "tests/test_priority.py:62-73 check_contract"
+            ]
+          },
+          {
+            "text": "Live: no `unknown`, and at least 85% agreement on 60 emails, 20 per label",
+            "refs": [
+              "tests/thresholds.py:7 PRIORITY_MIN_ACCURACY",
+              "tests/test_priority.py:103-133 test_live_accuracy"
+            ]
+          }
         ]
       }
     },
@@ -106,18 +161,76 @@
         ],
         "points": "4 points: 1 deterministic, 3 live",
         "provided": [
-          "The `run_daily_digest(emails, lm)` stub",
-          "Your P1 classifier",
-          "`data.emails_on(date)`: a day is the YYYY-MM-DD part of the UTC date; every email has `thread_id` and `reply_to`",
-          "`show digest <date> --labels --limit N`",
-          "`tests/test_daily_digest.py`: the output shape under scripted replies; live, about 30 emails from each of five archive days"
+          {
+            "text": "The `run_daily_digest(emails, lm)` stub",
+            "refs": [
+              "cs329z_hw1/adapters.py:69-86 run_daily_digest stub"
+            ]
+          },
+          {
+            "text": "Your P1 classifier",
+            "refs": [
+              "cs329z_hw1/pipelines/priority.py:60-72 your classify_priority"
+            ]
+          },
+          {
+            "text": "`data.emails_on(date)`: a day is the YYYY-MM-DD part of the UTC date; every email has `thread_id` and `reply_to`",
+            "refs": [
+              "cs329z_hw1/data.py:48-55 emails_on",
+              "cs329z_hw1/types.py:28-39 Email (thread_id, reply_to)"
+            ]
+          },
+          {
+            "text": "`show digest <date> --labels --limit N`",
+            "refs": [
+              "cs329z_hw1/show.py:85-106 show_digest"
+            ]
+          },
+          {
+            "text": "`tests/test_daily_digest.py`: the output shape under scripted replies; live, about 30 emails from each of five archive days",
+            "refs": [
+              "tests/test_daily_digest.py:41-84 scripted replies and shape",
+              "tests/test_daily_digest.py:114-159 live checks"
+            ]
+          }
         ],
-        "decision": "No “Design decision” line. The aggregation is yours (the box suggests: classify each email, drop the ignore pile, keep one item per thread, order by urgency), and so is the final prompt that keeps the text within the limits.",
+        "decision": {
+          "text": "No “Design decision” line. The aggregation is yours (the box suggests: classify each email, drop the ignore pile, keep one item per thread, order by urgency), and so is the final prompt that keeps the text within the limits.",
+          "refs": [
+            "cs329z_hw1/pipelines/daily_digest.py:66-89 aggregate",
+            "cs329z_hw1/pipelines/daily_digest.py:97-117 format_items",
+            "cs329z_hw1/pipelines/daily_digest.py:23-44 the prompts"
+          ]
+        },
         "asked": [
-          "A multi-call pipeline on top of P1: code does the aggregation, and a final LLM call writes the text; treat `unknown` like normal",
-          "At most 300 words by `len(digest.split())`, reached through the prompt, not by cutting the text",
-          "Name the company, project or site of every urgent email, and mention nothing from the ignore pile",
-          "Accept an empty list, and classify the emails concurrently"
+          {
+            "text": "A multi-call pipeline on top of P1: code does the aggregation, and a final LLM call writes the text; treat `unknown` like normal",
+            "refs": [
+              "cs329z_hw1/pipelines/daily_digest.py:66-89 aggregate",
+              "cs329z_hw1/pipelines/daily_digest.py:141-168 write_digest"
+            ]
+          },
+          {
+            "text": "At most 300 words by `len(digest.split())`, reached through the prompt, not by cutting the text",
+            "refs": [
+              "cs329z_hw1/pipelines/daily_digest.py:16-17 WORD_LIMIT, WORD_MARGIN",
+              "cs329z_hw1/pipelines/daily_digest.py:158-167 the shorten retry"
+            ]
+          },
+          {
+            "text": "Name the company, project or site of every urgent email, and mention nothing from the ignore pile",
+            "refs": [
+              "cs329z_hw1/pipelines/daily_digest.py:23-38 SYSTEM_PROMPT",
+              "cs329z_hw1/pipelines/daily_digest.py:78-79 ignore emails dropped"
+            ]
+          },
+          {
+            "text": "Accept an empty list, and classify the emails concurrently",
+            "refs": [
+              "cs329z_hw1/pipelines/daily_digest.py:142-146 empty days",
+              "cs329z_hw1/pipelines/daily_digest.py:47-60 classify_all"
+            ]
+          }
         ]
       }
     },
@@ -173,18 +286,73 @@
         ],
         "points": "8 points, all deterministic",
         "provided": [
-          "`cs329z_hw1.tokenizer.tokenize` (lowercase, split on non-alphanumerics), which you must use for documents and queries",
-          "The formula: Lucene IDF, k1 = 1.5, b = 0.75",
-          "The `run_bm25_build` and `run_bm25_search` stubs",
-          "NumPy; retrieval and search libraries are not allowed",
-          "`show bm25 \"<query>\"`, and tests with hand-computed scores on five documents, recall on 17 queries, and time limits"
+          {
+            "text": "`cs329z_hw1.tokenizer.tokenize` (lowercase, split on non-alphanumerics), which you must use for documents and queries",
+            "refs": [
+              "cs329z_hw1/tokenizer.py:14-20 tokenize"
+            ]
+          },
+          {
+            "text": "The formula: Lucene IDF, k1 = 1.5, b = 0.75",
+            "refs": [
+              "tests/test_bm25.py:43-50 idf and term_score as the tests compute them"
+            ]
+          },
+          {
+            "text": "The `run_bm25_build` and `run_bm25_search` stubs",
+            "refs": [
+              "cs329z_hw1/adapters.py:89-124 run_bm25_build, run_bm25_search"
+            ]
+          },
+          {
+            "text": "NumPy; retrieval and search libraries are not allowed",
+            "refs": [
+              "pyproject.toml:6-11 dependencies"
+            ]
+          },
+          {
+            "text": "`show bm25 \"<query>\"`, and tests with hand-computed scores on five documents, recall on 17 queries, and time limits",
+            "refs": [
+              "cs329z_hw1/show.py:125-137 show_bm25",
+              "tests/test_bm25.py:31-189 five-document tests",
+              "tests/test_bm25.py:209-262 archive recall and timing"
+            ]
+          }
         ],
-        "decision": "No “Design decision” line in the box: the index structure is yours. Design memo Q1 asks what your ranking got wrong on queries of your own, and why.",
+        "decision": {
+          "text": "No “Design decision” line in the box: the index structure is yours. Design memo Q1 asks what your ranking got wrong on queries of your own, and why.",
+          "refs": [
+            "cs329z_hw1/pipelines/bm25.py:16-23 BM25Index",
+            "cs329z_hw1/pipelines/bm25.py:26-48 build_index"
+          ]
+        },
         "asked": [
-          "An inverted index built in one pass over the corpus",
-          "A search that reads only the postings of the query's terms and never returns a document that shares no term with the query",
-          "The top-k `(doc_id, score)` pairs, best first, ties broken by lower doc_id, each distinct query term scored once",
-          "At least 90% of relevant emails in the top 10, averaged over 17 queries; build in 15 s, 20 ms per query on average, 2 ms for a term in 3 of 200,000 documents"
+          {
+            "text": "An inverted index built in one pass over the corpus",
+            "refs": [
+              "cs329z_hw1/pipelines/bm25.py:26-48 build_index"
+            ]
+          },
+          {
+            "text": "A search that reads only the postings of the query's terms and never returns a document that shares no term with the query",
+            "refs": [
+              "cs329z_hw1/pipelines/bm25.py:61-68 only the query terms' postings"
+            ]
+          },
+          {
+            "text": "The top-k `(doc_id, score)` pairs, best first, ties broken by lower doc_id, each distinct query term scored once",
+            "refs": [
+              "cs329z_hw1/pipelines/bm25.py:61 distinct terms",
+              "cs329z_hw1/pipelines/bm25.py:69-70 top-k and tie-break"
+            ]
+          },
+          {
+            "text": "At least 90% of relevant emails in the top 10, averaged over 17 queries; build in 15 s, 20 ms per query on average, 2 ms for a term in 3 of 200,000 documents",
+            "refs": [
+              "tests/test_bm25.py:21-27 limits",
+              "tests/test_bm25.py:209-262 archive tests"
+            ]
+          }
         ]
       }
     },
@@ -232,18 +400,76 @@
         ],
         "points": "8 points: 2 deterministic, 6 live",
         "provided": [
-          "`search(query, k) -> list[Email]`, built once by the caller from your BM25 index over the whole archive, so the pipeline never builds an index",
-          "The `run_email_qa(question, search, lm)` stub",
-          "`show email_qa \"<question>\"`, which prints every search the pipeline made",
-          "`tests/test_email_qa.py`: the hop budget and output shape under scripted replies; live, 25 questions about needles (12 one-hop, 13 two-hop)",
-          "Note: the archive contains emails addressed to AI systems, and this pipeline will retrieve some of them"
+          {
+            "text": "`search(query, k) -> list[Email]`, built once by the caller from your BM25 index over the whole archive, so the pipeline never builds an index",
+            "refs": [
+              "tests/test_email_qa.py:113-124 make_search",
+              "cs329z_hw1/show.py:140-168 show_email_qa"
+            ]
+          },
+          {
+            "text": "The `run_email_qa(question, search, lm)` stub",
+            "refs": [
+              "cs329z_hw1/adapters.py:127-152 run_email_qa stub"
+            ]
+          },
+          {
+            "text": "`show email_qa \"<question>\"`, which prints every search the pipeline made",
+            "refs": [
+              "cs329z_hw1/show.py:140-168 show_email_qa"
+            ]
+          },
+          {
+            "text": "`tests/test_email_qa.py`: the hop budget and output shape under scripted replies; live, 25 questions about needles (12 one-hop, 13 two-hop)",
+            "refs": [
+              "tests/test_email_qa.py:18-105 FakeSearch and the scripted tests",
+              "tests/test_email_qa.py:145-187 live accuracy and support"
+            ]
+          },
+          {
+            "text": "Note: the archive contains emails addressed to AI systems, and this pipeline will retrieve some of them",
+            "refs": [
+              "cs329z_hw1/pipelines/email_qa.py:22 how your prompt treats them"
+            ]
+          }
         ],
-        "decision": "No “Design decision” line. The loop is yours: what the model sees, how it asks for the next search, how many emails each search returns (you choose k), and how the answer and support are parsed.",
+        "decision": {
+          "text": "No “Design decision” line. The loop is yours: what the model sees, how it asks for the next search, how many emails each search returns (you choose k), and how the answer and support are parsed.",
+          "refs": [
+            "cs329z_hw1/pipelines/email_qa.py:12-16 HOP_BUDGET, K, BODY_CHARS",
+            "cs329z_hw1/pipelines/email_qa.py:18-39 the prompts",
+            "cs329z_hw1/pipelines/email_qa.py:80-95 parse_reply"
+          ]
+        },
         "asked": [
-          "Your code owns the loop: the LLM reads the retrieved emails and either answers or gives the next query",
-          "At most 3 calls to `search` per question, whatever the model replies",
-          "Return a short answer or None, and support ids that `search` returned during this call",
-          "Live: at least 70% correct, and each correct answer's support includes a gold email"
+          {
+            "text": "Your code owns the loop: the LLM reads the retrieved emails and either answers or gives the next query",
+            "refs": [
+              "cs329z_hw1/pipelines/email_qa.py:111-154 answer_question",
+              "cs329z_hw1/pipelines/email_qa.py:61-69 _user_message"
+            ]
+          },
+          {
+            "text": "At most 3 calls to `search` per question, whatever the model replies",
+            "refs": [
+              "cs329z_hw1/pipelines/email_qa.py:12 HOP_BUDGET",
+              "cs329z_hw1/pipelines/email_qa.py:121 the loop bound"
+            ]
+          },
+          {
+            "text": "Return a short answer or None, and support ids that `search` returned during this call",
+            "refs": [
+              "cs329z_hw1/pipelines/email_qa.py:98-108 _support",
+              "cs329z_hw1/pipelines/email_qa.py:149-150 no answer"
+            ]
+          },
+          {
+            "text": "Live: at least 70% correct, and each correct answer's support includes a gold email",
+            "refs": [
+              "tests/thresholds.py:8 EMAIL_QA_MIN_ACCURACY",
+              "tests/test_email_qa.py:145-187 live tests"
+            ]
+          }
         ]
       }
     },
@@ -290,16 +516,61 @@
         ],
         "points": "3 points, all deterministic",
         "provided": [
-          "`ToolSpec` (name, description, JSON Schema parameters, fn, read_only) and `ToolResult` in `types.py`",
-          "`tests/fixture_tools.py`, complete example tools; `cardinal.py` builds the Part 2 specs",
-          "`jsonschema.Draft202012Validator` for the argument check",
-          "The `run_tool_registry(tools)` stub"
+          {
+            "text": "`ToolSpec` (name, description, JSON Schema parameters, fn, read_only) and `ToolResult` in `types.py`",
+            "refs": [
+              "cs329z_hw1/types.py:44-67 Status, ToolSpec, ToolCall, ToolResult"
+            ]
+          },
+          {
+            "text": "`tests/fixture_tools.py`, complete example tools; `cardinal.py` builds the Part 2 specs",
+            "refs": [
+              "tests/fixture_tools.py:65-200 make_fixture_tools",
+              "cs329z_hw1/cardinal.py:88-106 cardinal_spec"
+            ]
+          },
+          {
+            "text": "`jsonschema.Draft202012Validator` for the argument check",
+            "refs": [
+              "pyproject.toml:9 jsonschema"
+            ]
+          },
+          {
+            "text": "The `run_tool_registry(tools)` stub",
+            "refs": [
+              "cs329z_hw1/adapters.py:160-186 run_tool_registry stub"
+            ]
+          }
         ],
-        "decision": "None: the handout says this problem has no design decision. It exists because the loop (P7) and the interactive layer (P13) depend on one property: the registry validates a call separately from running it, so a bad call can be rejected before anyone is asked to approve it.",
+        "decision": {
+          "text": "None: the handout says this problem has no design decision. It exists because the loop (P7) and the interactive layer (P13) depend on one property: the registry validates a call separately from running it, so a bad call can be rejected before anyone is asked to approve it.",
+          "refs": [
+            "cs329z_hw1/agent/registry.py:35-59 validate",
+            "cs329z_hw1/agent/session.py:251-260 validate before guard and approval"
+          ]
+        },
         "asked": [
-          "`schemas()`: one dict per tool, in registration order, with exactly name, description and parameters",
-          "`validate(name, args)`: the unknown_tool or invalid_args result, or None; never calls the tool, never raises",
-          "`execute(name, args)`: validate, then run; always a `ToolResult`, never raises; `str()` of the value on ok, the exception's message on tool_error"
+          {
+            "text": "`schemas()`: one dict per tool, in registration order, with exactly name, description and parameters",
+            "refs": [
+              "cs329z_hw1/agent/registry.py:29-33 schemas",
+              "tests/test_tool_registry.py:56-101 schema tests"
+            ]
+          },
+          {
+            "text": "`validate(name, args)`: the unknown_tool or invalid_args result, or None; never calls the tool, never raises",
+            "refs": [
+              "cs329z_hw1/agent/registry.py:35-59 validate",
+              "tests/test_tool_registry.py:184-225 validate tests"
+            ]
+          },
+          {
+            "text": "`execute(name, args)`: validate, then run; always a `ToolResult`, never raises; `str()` of the value on ok, the exception's message on tool_error",
+            "refs": [
+              "cs329z_hw1/agent/registry.py:61-69 execute",
+              "tests/test_tool_registry.py:285-326 tool_error tests"
+            ]
+          }
         ]
       }
     },
@@ -359,18 +630,80 @@
         ],
         "points": "4 points: 2 deterministic, 2 live",
         "provided": [
-          "The `LM` wrapper, with no tool-calling feature and no message role for tool results",
-          "The loop sketch in §5.2: `render_tools` and `parse_response` are this problem",
-          "The `ToolCall` and `ParsedResponse` types, and three adapter stubs",
-          "`ScriptedLM`, which writes scripted calls with your `run_format_tool_call`, so the tests work with any format"
+          {
+            "text": "The `LM` wrapper, with no tool-calling feature and no message role for tool results",
+            "refs": [
+              "cs329z_hw1/llm.py:1-11 one primitive, no tool calling",
+              "cs329z_hw1/llm.py:89 VALID_ROLES"
+            ]
+          },
+          {
+            "text": "The loop sketch in §5.2: `render_tools` and `parse_response` are this problem",
+            "refs": [
+              "cs329z_hw1/agent/session.py:144-146 your render_tools in the system prompt",
+              "cs329z_hw1/agent/session.py:210 your parse_response in the loop"
+            ]
+          },
+          {
+            "text": "The `ToolCall` and `ParsedResponse` types, and three adapter stubs",
+            "refs": [
+              "cs329z_hw1/types.py:58-76 ToolCall, ParsedResponse",
+              "cs329z_hw1/adapters.py:189-243 the three stubs"
+            ]
+          },
+          {
+            "text": "`ScriptedLM`, which writes scripted calls with your `run_format_tool_call`, so the tests work with any format",
+            "refs": [
+              "cs329z_hw1/llm.py:415-486 ScriptedLM and its formatter",
+              "tests/conftest.py:21-34 scripted fixture"
+            ]
+          }
         ],
-        "decision": "Yours: the format (for example a JSON object in a fenced block, or XML-style tags), what the prompt says about it, and how a tool result is written back to the model.",
+        "decision": {
+          "text": "Yours: the format (for example a JSON object in a fenced block, or XML-style tags), what the prompt says about it, and how a tool result is written back to the model.",
+          "refs": [
+            "cs329z_hw1/agent/protocol.py:1-16 the format",
+            "cs329z_hw1/agent/protocol.py:68-98 render_tools",
+            "cs329z_hw1/agent/protocol.py:265-275 results and errors written back"
+          ]
+        },
         "asked": [
-          "`run_render_tools(schemas)`: system-prompt text that describes the tools and how to call them",
-          "`run_parse_response(text)`: the text with the call removed, and at most one `ToolCall`; several calls or an unparsable call set `error`; never raise",
-          "`run_format_tool_call(text, call)`: a reply in your format that parses back to the same name and args, with their JSON types",
-          "A reply cut at any character parses to no call or the original call, and a cut inside the args sets `error`; an argument may contain a complete call in your format",
-          "Live: at least 18 of 20 correct calls, with only one fixed sentence and your rendered tools as the system prompt"
+          {
+            "text": "`run_render_tools(schemas)`: system-prompt text that describes the tools and how to call them",
+            "refs": [
+              "cs329z_hw1/agent/protocol.py:68-98 render_tools",
+              "cs329z_hw1/agent/protocol.py:37-65 _param_line, _render_tool"
+            ]
+          },
+          {
+            "text": "`run_parse_response(text)`: the text with the call removed, and at most one `ToolCall`; several calls or an unparsable call set `error`; never raise",
+            "refs": [
+              "cs329z_hw1/agent/protocol.py:164-185 parse_response, _parse"
+            ]
+          },
+          {
+            "text": "`run_format_tool_call(text, call)`: a reply in your format that parses back to the same name and args, with their JSON types",
+            "refs": [
+              "cs329z_hw1/agent/protocol.py:258-262 format_tool_call",
+              "tests/test_tool_protocol.py:146-184 round-trip tests"
+            ]
+          },
+          {
+            "text": "A reply cut at any character parses to no call or the original call, and a cut inside the args sets `error`; an argument may contain a complete call in your format",
+            "refs": [
+              "cs329z_hw1/agent/protocol.py:139-161 _read_call (raw_decode)",
+              "tests/test_tool_protocol.py:163-175 a call inside an argument",
+              "tests/test_tool_protocol.py:253-295 truncation tests"
+            ]
+          },
+          {
+            "text": "Live: at least 18 of 20 correct calls, with only one fixed sentence and your rendered tools as the system prompt",
+            "refs": [
+              "tests/test_tool_protocol.py:356 LIVE_INSTRUCTION",
+              "tests/test_tool_protocol.py:399-431 live test",
+              "tests/thresholds.py:9"
+            ]
+          }
         ]
       }
     },
@@ -422,17 +755,74 @@
         ],
         "points": "8 points, all deterministic",
         "provided": [
-          "The `run_agent_session` adapter, whose docstring lists the rules the tests check",
-          "`AgentConfig`, `AgentResult` and the transcript event types in `types.py`",
-          "`count_tokens` and `count_message_tokens` in `tokens.py`",
-          "`ScriptedLM` and the fixture tools; `OutputTruncated` from the LM"
+          {
+            "text": "The `run_agent_session` adapter, whose docstring lists the rules the tests check",
+            "refs": [
+              "cs329z_hw1/adapters.py:246-361 run_agent_session stub",
+              "cs329z_hw1/adapters.py:281-308 the agent_loop rules"
+            ]
+          },
+          {
+            "text": "`AgentConfig`, `AgentResult` and the transcript event types in `types.py`",
+            "refs": [
+              "cs329z_hw1/types.py:81-142 StopReason, AgentResult, events, AgentConfig"
+            ]
+          },
+          {
+            "text": "`count_tokens` and `count_message_tokens` in `tokens.py`",
+            "refs": [
+              "cs329z_hw1/tokens.py:19-26 count_tokens, count_message_tokens"
+            ]
+          },
+          {
+            "text": "`ScriptedLM` and the fixture tools; `OutputTruncated` from the LM",
+            "refs": [
+              "cs329z_hw1/llm.py:415-486 ScriptedLM",
+              "tests/fixture_tools.py:65-200 fixture tools",
+              "cs329z_hw1/llm.py:100-122 OutputTruncated"
+            ]
+          }
         ],
-        "decision": "Yours: in the tests a reply with no tool call is the final answer, but live models also write replies that announce an action without calling a tool (“I'll look that up.”). You choose whether the loop accepts such a reply as the answer or asks the model to continue.",
+        "decision": {
+          "text": "Yours: in the tests a reply with no tool call is the final answer, but live models also write replies that announce an action without calling a tool (“I'll look that up.”). You choose whether the loop accepts such a reply as the answer or asks the model to continue.",
+          "refs": [
+            "cs329z_hw1/agent/session.py:221-245 the no-call branch",
+            "cs329z_hw1/agent/session.py:87-102 _ANNOUNCES_CALL, NUDGE",
+            "cs329z_hw1/agent/session.py:380-385 announces_call"
+          ]
+        },
         "asked": [
-          "`session.send`: alternate model calls and tool executions until a final answer or a limit; never raise for anything the model writes or a tool does",
-          "Statuses: done, max_turns, token_budget, malformed (three malformed replies in a row; send the error back; a well-formed reply resets the count)",
-          "Check both budgets before each model call; the first message names every tool",
-          "Every tool_result and error content appears verbatim in the next model call; the transcript is append-only; the result text is never empty"
+          {
+            "text": "`session.send`: alternate model calls and tool executions until a final answer or a limit; never raise for anything the model writes or a tool does",
+            "refs": [
+              "cs329z_hw1/agent/session.py:160-279 send",
+              "cs329z_hw1/agent/session.py:191-205 OutputTruncated is malformed"
+            ]
+          },
+          {
+            "text": "Statuses: done, max_turns, token_budget, malformed (three malformed replies in a row; send the error back; a well-formed reply resets the count)",
+            "refs": [
+              "cs329z_hw1/agent/session.py:79-80 MAX_MALFORMED, MALFORMED_STATUSES",
+              "cs329z_hw1/agent/session.py:214-219 parse errors",
+              "cs329z_hw1/agent/session.py:274-279 registry errors and the reset"
+            ]
+          },
+          {
+            "text": "Check both budgets before each model call; the first message names every tool",
+            "refs": [
+              "cs329z_hw1/agent/session.py:172-183 both budgets before each call",
+              "cs329z_hw1/agent/session.py:144-146 tools in the system prompt"
+            ]
+          },
+          {
+            "text": "Every tool_result and error content appears verbatim in the next model call; the transcript is append-only; the result text is never empty",
+            "refs": [
+              "cs329z_hw1/agent/session.py:268-271 tool_result event and message",
+              "cs329z_hw1/agent/session.py:365-367 _add_error",
+              "cs329z_hw1/agent/session.py:222-229 never an empty answer",
+              "cs329z_hw1/agent/session.py:376-377 _result copies the transcript"
+            ]
+          }
         ]
       }
     },
@@ -478,16 +868,64 @@
         ],
         "points": "2 points, all deterministic",
         "provided": [
-          "`cardinal.py`: the ten tool names, argument schemas and read-only flags (fixed), and `cardinal_spec(name, description, fn)`",
-          "`data.load_emails`, `data.emails_on` and `data.email_text`",
-          "Your Part 1 pipelines, which become tools",
-          "`chat.py`, to talk to your agent in the terminal"
+          {
+            "text": "`cardinal.py`: the ten tool names, argument schemas and read-only flags (fixed), and `cardinal_spec(name, description, fn)`",
+            "refs": [
+              "cs329z_hw1/cardinal.py:39-85 CARDINAL_TOOLS",
+              "cs329z_hw1/cardinal.py:88-106 cardinal_spec"
+            ]
+          },
+          {
+            "text": "`data.load_emails`, `data.emails_on` and `data.email_text`",
+            "refs": [
+              "cs329z_hw1/data.py:39-60 load_emails, emails_on, email_text"
+            ]
+          },
+          {
+            "text": "Your Part 1 pipelines, which become tools",
+            "refs": [
+              "cs329z_hw1/pipelines/email_qa.py:111-154 answer_question",
+              "cs329z_hw1/pipelines/daily_digest.py:141-168 write_digest"
+            ]
+          },
+          {
+            "text": "`chat.py`, to talk to your agent in the terminal",
+            "refs": [
+              "cs329z_hw1/chat.py:32-79 main"
+            ]
+          }
         ],
-        "decision": "No “Design decision” line. The tool functions and the descriptions the model reads are yours; the names, schemas and flags are fixed.",
+        "decision": {
+          "text": "No “Design decision” line. The tool functions and the descriptions the model reads are yours; the names, schemas and flags are fixed.",
+          "refs": [
+            "cs329z_hw1/agent/toolset.py:243-294 your descriptions",
+            "cs329z_hw1/agent/toolset.py:119-141 search_emails and read_email output"
+          ]
+        },
         "asked": [
-          "`run_agent_session(lm, None, config)` returns a working session with all ten tools registered, before every tool is finished",
-          "Creating a session must not read the email archive: build the index the first time a tool needs it",
-          "An explicit tool list gives exactly those tools, plus ask_user if `config.user` is set and remember and recall if `config.memory_dir` is set"
+          {
+            "text": "`run_agent_session(lm, None, config)` returns a working session with all ten tools registered, before every tool is finished",
+            "refs": [
+              "cs329z_hw1/agent/session.py:388-397 create_session",
+              "cs329z_hw1/agent/toolset.py:209-295 build_tools",
+              "tests/test_cardinal.py:54-62"
+            ]
+          },
+          {
+            "text": "Creating a session must not read the email archive: build the index the first time a tool needs it",
+            "refs": [
+              "cs329z_hw1/agent/toolset.py:53-80 EMAIL_INDEX, built on first use",
+              "tests/test_cardinal.py:65-87"
+            ]
+          },
+          {
+            "text": "An explicit tool list gives exactly those tools, plus ask_user if `config.user` is set and remember and recall if `config.memory_dir` is set",
+            "refs": [
+              "cs329z_hw1/agent/toolset.py:298-307 extra_tools",
+              "cs329z_hw1/agent/session.py:394-396 a listed tool wins",
+              "tests/test_cardinal.py:93-132"
+            ]
+          }
         ]
       }
     },
@@ -542,17 +980,76 @@
         ],
         "points": "5 points: 2 deterministic, 3 live",
         "provided": [
-          "`data.load_docs()`: doc_id, title and line numbering; one paragraph per line",
-          "24 Cardinal documents, some superseded by later announcements, some with planted text addressed to AI agents",
-          "The `SearchResult` and `DocWindow` types, three adapter stubs, and your BM25",
-          "`show search_docs \"<query>\"`"
+          {
+            "text": "`data.load_docs()`: doc_id, title and line numbering; one paragraph per line",
+            "refs": [
+              "cs329z_hw1/data.py:63-80 load_docs"
+            ]
+          },
+          {
+            "text": "24 Cardinal documents, some superseded by later announcements, some with planted text addressed to AI agents",
+            "refs": [
+              "data/docs/ the 24 documents",
+              "data/docs/expense-policy-2026.md:8 one that replaces an older policy",
+              "data/docs/expense-policy-2026.md:42 planted text"
+            ]
+          },
+          {
+            "text": "The `SearchResult` and `DocWindow` types, three adapter stubs, and your BM25",
+            "refs": [
+              "cs329z_hw1/types.py:148-159 SearchResult, DocWindow",
+              "cs329z_hw1/adapters.py:364-416 the three stubs",
+              "cs329z_hw1/pipelines/bm25.py:26-70 your BM25"
+            ]
+          },
+          {
+            "text": "`show search_docs \"<query>\"`",
+            "refs": [
+              "cs329z_hw1/show.py:171-178 show_search_docs"
+            ]
+          }
         ],
-        "decision": "Yours: everything behind the interface. Whole documents or chunks (and their size and boundaries), how snippets are built, the window size, what the tool's output looks like to the model, and what an empty result says.",
+        "decision": {
+          "text": "Yours: everything behind the interface. Whole documents or chunks (and their size and boundaries), how snippets are built, the window size, what the tool's output looks like to the model, and what an empty result says.",
+          "refs": [
+            "cs329z_hw1/pipelines/search_docs.py:1-24 your design",
+            "cs329z_hw1/pipelines/search_docs.py:37-48 passage, snippet and window sizes",
+            "cs329z_hw1/pipelines/search_docs.py:74-99 _passages: chunk boundaries",
+            "cs329z_hw1/pipelines/search_docs.py:123-148 _excerpt, _snippet",
+            "cs329z_hw1/agent/toolset.py:163-206 what the model sees, and the empty result"
+          ]
+        },
         "asked": [
-          "`run_build_doc_index(docs)`, shared by the two tools and built on first use",
-          "`run_search_docs(index, query, k)`: at most k results with doc_id, title and a snippet of at most 150 tokens; an empty list on no match",
-          "`run_read_doc(index, doc_id, start_line)`: a window of at most 1,500 tokens that is exactly lines start_line to end_line, with total_lines; an unknown doc or line raises",
-          "Register them as the search_docs and read_doc tools. Live: at least 15 of 20 correct (5 about a changed policy), at most 6,000 tokens of these tools' results per conversation"
+          {
+            "text": "`run_build_doc_index(docs)`, shared by the two tools and built on first use",
+            "refs": [
+              "cs329z_hw1/pipelines/search_docs.py:102-117 build_doc_index",
+              "cs329z_hw1/agent/toolset.py:83-97 DOC_INDEX, built on first use"
+            ]
+          },
+          {
+            "text": "`run_search_docs(index, query, k)`: at most k results with doc_id, title and a snippet of at most 150 tokens; an empty list on no match",
+            "refs": [
+              "cs329z_hw1/pipelines/search_docs.py:151-177 search_docs",
+              "cs329z_hw1/pipelines/search_docs.py:144-148 _snippet",
+              "tests/test_search_docs.py:106-184"
+            ]
+          },
+          {
+            "text": "`run_read_doc(index, doc_id, start_line)`: a window of at most 1,500 tokens that is exactly lines start_line to end_line, with total_lines; an unknown doc or line raises",
+            "refs": [
+              "cs329z_hw1/pipelines/search_docs.py:183-207 read_doc",
+              "tests/test_search_docs.py:227-296"
+            ]
+          },
+          {
+            "text": "Register them as the search_docs and read_doc tools. Live: at least 15 of 20 correct (5 about a changed policy), at most 6,000 tokens of these tools' results per conversation",
+            "refs": [
+              "cs329z_hw1/agent/toolset.py:264-277 registration",
+              "tests/thresholds.py:10-12",
+              "tests/test_search_docs.py:314-370 live test"
+            ]
+          }
         ]
       }
     },
@@ -610,17 +1107,74 @@
         ],
         "points": "6 points: 2 deterministic, 4 live",
         "provided": [
-          "`sandbox.run_terminal(cmd, workspace, timeout)` returning a `TerminalResult` (stdout, stderr, exit_code, timed_out, rejected, reason); it never raises for a timeout or a rejection",
-          "The sandbox's allowlist, timeout, scrubbed environment and OS jail (`sandbox.jail()`)",
-          "`cardinal_spec` and the tool skeleton printed in the box",
-          "`config.workspace`, `config.terminal_timeout` and `config.context_budget`"
+          {
+            "text": "`sandbox.run_terminal(cmd, workspace, timeout)` returning a `TerminalResult` (stdout, stderr, exit_code, timed_out, rejected, reason); it never raises for a timeout or a rejection",
+            "refs": [
+              "cs329z_hw1/sandbox.py:100-107 TerminalResult",
+              "cs329z_hw1/sandbox.py:296-352 run_terminal"
+            ]
+          },
+          {
+            "text": "The sandbox's allowlist, timeout, scrubbed environment and OS jail (`sandbox.jail()`)",
+            "refs": [
+              "cs329z_hw1/sandbox.py:1-46 the four layers",
+              "cs329z_hw1/sandbox.py:82-88 allowlist",
+              "cs329z_hw1/sandbox.py:268-281 jail"
+            ]
+          },
+          {
+            "text": "`cardinal_spec` and the tool skeleton printed in the box",
+            "refs": [
+              "cs329z_hw1/cardinal.py:69-72 run_terminal schema",
+              "cs329z_hw1/cardinal.py:88-106 cardinal_spec"
+            ]
+          },
+          {
+            "text": "`config.workspace`, `config.terminal_timeout` and `config.context_budget`",
+            "refs": [
+              "cs329z_hw1/types.py:126-142 context_budget, workspace, terminal_timeout"
+            ]
+          }
         ],
-        "decision": "Yours: the observation policy, meaning what the model sees when output is large. Shipped harnesses differ: pass everything through (mini-swe-agent), keep the head and tail (Codex CLI), truncate and save the full output to a file the model is told about (OpenHands, Gemini CLI, Claude Code), or summarize it with another model call.",
+        "decision": {
+          "text": "Yours: the observation policy, meaning what the model sees when output is large. Shipped harnesses differ: pass everything through (mini-swe-agent), keep the head and tail (Codex CLI), truncate and save the full output to a file the model is told about (OpenHands, Gemini CLI, Claude Code), or summarize it with another model call.",
+          "refs": [
+            "cs329z_hw1/agent/terminal.py:7-24 your observation policy",
+            "cs329z_hw1/agent/terminal.py:43-50 budget constants",
+            "cs329z_hw1/agent/terminal.py:104-142 _save and _stream: head, tail, file"
+          ]
+        },
         "asked": [
-          "Implement the run_terminal tool; every command goes through `sandbox.run_terminal`, with no subprocess calls of your own",
-          "The result contains stdout, stderr and the exit code; a rejection gives the sandbox's reason; a timeout says it timed out",
-          "Status ok only for exit code 0; a non-zero exit, a timeout and a rejection are tool_error, and the run continues",
-          "After a 600,000-character print, every model call stays within the context budget and the tool_result event holds what the model was shown. Live: at least 8 of 10 answers"
+          {
+            "text": "Implement the run_terminal tool; every command goes through `sandbox.run_terminal`, with no subprocess calls of your own",
+            "refs": [
+              "cs329z_hw1/agent/terminal.py:145-175 make_run_terminal",
+              "cs329z_hw1/agent/terminal.py:150 the sandbox call",
+              "cs329z_hw1/agent/toolset.py:278 registration"
+            ]
+          },
+          {
+            "text": "The result contains stdout, stderr and the exit code; a rejection gives the sandbox's reason; a timeout says it timed out",
+            "refs": [
+              "cs329z_hw1/agent/terminal.py:151-170 rejection, timeout, exit code, streams"
+            ]
+          },
+          {
+            "text": "Status ok only for exit code 0; a non-zero exit, a timeout and a rejection are tool_error, and the run continues",
+            "refs": [
+              "cs329z_hw1/agent/terminal.py:171-172 CommandFailed",
+              "cs329z_hw1/agent/registry.py:61-69 an exception becomes tool_error"
+            ]
+          },
+          {
+            "text": "After a 600,000-character print, every model call stays within the context budget and the tool_result event holds what the model was shown. Live: at least 8 of 10 answers",
+            "refs": [
+              "cs329z_hw1/agent/terminal.py:79-82 observation_chars",
+              "cs329z_hw1/agent/session.py:266-270 fit_result before logging",
+              "tests/test_terminal.py:228-252",
+              "tests/test_terminal.py:272-334 live test"
+            ]
+          }
         ]
       }
     },
@@ -675,16 +1229,67 @@
         ],
         "points": "8 points: 5 deterministic, 3 live",
         "provided": [
-          "`count_message_tokens` (`tokens.py`), `config.context_budget` and `config.aux_lm`",
-          "The append-only transcript from P7",
-          "Tests: a 4,000-token budget with the seven fixture tools and a replay of 60 model calls; live, two constraints stated up front, eleven scripted requests, then one live question"
+          {
+            "text": "`count_message_tokens` (`tokens.py`), `config.context_budget` and `config.aux_lm`",
+            "refs": [
+              "cs329z_hw1/tokens.py:24-26 count_message_tokens",
+              "cs329z_hw1/types.py:126-127 context_budget",
+              "cs329z_hw1/types.py:135-138 aux_lm"
+            ]
+          },
+          {
+            "text": "The append-only transcript from P7",
+            "refs": [
+              "cs329z_hw1/types.py:96-109 the transcript contract"
+            ]
+          },
+          {
+            "text": "Tests: a 4,000-token budget with the seven fixture tools and a replay of 60 model calls; live, two constraints stated up front, eleven scripted requests, then one live question",
+            "refs": [
+              "tests/test_compaction.py:31-188 the 4,000-token replay",
+              "tests/test_compaction.py:210-256 live constraint test"
+            ]
+          }
         ],
-        "decision": "Yours: the whole policy. When to trigger, what to drop first, what a summary must preserve, and what must never be compacted away. Two things are fixed: the budget always holds, and constraints the user stated stay usable after the messages that carried them have left the context.",
+        "decision": {
+          "text": "Yours: the whole policy. When to trigger, what to drop first, what a summary must preserve, and what must never be compacted away. Two things are fixed: the budget always holds, and constraints the user stated stay usable after the messages that carried them have left the context.",
+          "refs": [
+            "cs329z_hw1/agent/compaction.py:9-37 your policy",
+            "cs329z_hw1/agent/compaction.py:49-76 shares, target and summary prompt",
+            "cs329z_hw1/agent/compaction.py:172-202 _compact"
+          ]
+        },
         "asked": [
-          "For every model call, `count_message_tokens(messages) <= config.context_budget`",
-          "Compaction changes only what is sent; the transcript keeps every event",
-          "The current user message is in every model call made for it; model-written summaries come from `aux_lm`",
-          "A tool result appears verbatim in the call after it, and can be shortened only from the call after that"
+          {
+            "text": "For every model call, `count_message_tokens(messages) <= config.context_budget`",
+            "refs": [
+              "cs329z_hw1/agent/compaction.py:137-148 build",
+              "cs329z_hw1/agent/compaction.py:236-252 _squeeze"
+            ]
+          },
+          {
+            "text": "Compaction changes only what is sent; the transcript keeps every event",
+            "refs": [
+              "cs329z_hw1/agent/compaction.py:123-133 the overlay",
+              "cs329z_hw1/agent/session.py:333-338 _context"
+            ]
+          },
+          {
+            "text": "The current user message is in every model call made for it; model-written summaries come from `aux_lm`",
+            "refs": [
+              "cs329z_hw1/agent/session.py:337 the protected set",
+              "cs329z_hw1/agent/compaction.py:204-226 _summarize",
+              "cs329z_hw1/agent/session.py:151 the Compactor gets aux_lm"
+            ]
+          },
+          {
+            "text": "A tool result appears verbatim in the call after it, and can be shortened only from the call after that",
+            "refs": [
+              "cs329z_hw1/agent/compaction.py:102-104 fit_result",
+              "cs329z_hw1/agent/compaction.py:107-120 _stub",
+              "cs329z_hw1/agent/session.py:337 newest message protected"
+            ]
+          }
         ]
       }
     },
@@ -738,17 +1343,71 @@
         ],
         "points": "8 points: 3 deterministic, 5 live",
         "provided": [
-          "`config.memory_dir`, and the remember(fact) and recall(query) schemas in `cardinal.py`",
-          "`show memory [dir]`, which prints a store",
-          "The handout's note that plain JSON is fine",
-          "Tests: file checks across sessions and directories; live, three pairs of sessions that share only memory_dir"
+          {
+            "text": "`config.memory_dir`, and the remember(fact) and recall(query) schemas in `cardinal.py`",
+            "refs": [
+              "cs329z_hw1/types.py:128-129 memory_dir",
+              "cs329z_hw1/cardinal.py:73-80 remember and recall schemas"
+            ]
+          },
+          {
+            "text": "`show memory [dir]`, which prints a store",
+            "refs": [
+              "cs329z_hw1/show.py:196-209 show_memory"
+            ]
+          },
+          {
+            "text": "The handout's note that plain JSON is fine",
+            "refs": [
+              "cs329z_hw1/agent/memory.py:3-6 your JSON file"
+            ]
+          },
+          {
+            "text": "Tests: file checks across sessions and directories; live, three pairs of sessions that share only memory_dir",
+            "refs": [
+              "tests/test_memory.py:92-208",
+              "tests/test_memory.py:213-287 live pairs"
+            ]
+          }
         ],
-        "decision": "Yours: what to store, and what a new session starts with. Real systems differ: Claude Code, Codex CLI and Gemini CLI load a whole instruction file, while Letta keeps a small block in the prompt and the rest behind a search tool. Loading the whole store every session gets full credit, but recall must still work.",
+        "decision": {
+          "text": "Yours: what to store, and what a new session starts with. Real systems differ: Claude Code, Codex CLI and Gemini CLI load a whole instruction file, while Letta keeps a small block in the prompt and the rest behind a search tool. Loading the whole store every session gets full credit, but recall must still work.",
+          "refs": [
+            "cs329z_hw1/agent/memory.py:13-28 what a new session starts with",
+            "cs329z_hw1/agent/memory.py:273-295 prompt_block",
+            "cs329z_hw1/agent/session.py:149-150 the block in the system prompt"
+          ]
+        },
         "asked": [
-          "remember and recall over a store on disk; with memory_dir set, the session has both tools whatever its tool list",
-          "Everything stored is in files under that directory; a new session with the same directory can use it, and one with a different directory must not see it",
-          "recall on an empty store gives an ok result with a non-empty message; the harness may write to the store itself",
-          "Live: a fact stated in session 1 decides the answer in session 2, in at least 2 of 3 pairs"
+          {
+            "text": "remember and recall over a store on disk; with memory_dir set, the session has both tools whatever its tool list",
+            "refs": [
+              "cs329z_hw1/agent/memory.py:221-269 remember, recall",
+              "cs329z_hw1/agent/toolset.py:298-307 extra_tools"
+            ]
+          },
+          {
+            "text": "Everything stored is in files under that directory; a new session with the same directory can use it, and one with a different directory must not see it",
+            "refs": [
+              "cs329z_hw1/agent/memory.py:169-199 the store and its file",
+              "tests/test_memory.py:147-170"
+            ]
+          },
+          {
+            "text": "recall on an empty store gives an ok result with a non-empty message; the harness may write to the store itself",
+            "refs": [
+              "cs329z_hw1/agent/memory.py:256-257 empty store",
+              "cs329z_hw1/agent/memory.py:178-193 every read goes to the file"
+            ]
+          },
+          {
+            "text": "Live: a fact stated in session 1 decides the answer in session 2, in at least 2 of 3 pairs",
+            "refs": [
+              "tests/test_memory.py:261-287",
+              "tests/thresholds.py:14",
+              "cs329z_hw1/agent/memory.py:95-143 nudge and fallback"
+            ]
+          }
         ]
       }
     },
@@ -803,16 +1462,68 @@
         ],
         "points": "7 points, all deterministic",
         "provided": [
-          "`config.user`, a `UserIO` (`user.py`) with `approve(call)` returning an `Approval` (approved, reason), `ask(question)` and `pending_message()`",
-          "`ScriptedUser` in the tests, `ConsoleUser` in `chat.py`, and simulated personas in P15",
-          "`config.mode` and `session.set_mode`, and a read_only flag on every `ToolSpec`"
+          {
+            "text": "`config.user`, a `UserIO` (`user.py`) with `approve(call)` returning an `Approval` (approved, reason), `ask(question)` and `pending_message()`",
+            "refs": [
+              "cs329z_hw1/user.py:16-31 UserIO",
+              "cs329z_hw1/types.py:112-115 Approval"
+            ]
+          },
+          {
+            "text": "`ScriptedUser` in the tests, `ConsoleUser` in `chat.py`, and simulated personas in P15",
+            "refs": [
+              "cs329z_hw1/user.py:34-80 ScriptedUser",
+              "cs329z_hw1/user.py:83-95 ConsoleUser",
+              "cs329z_hw1/simulation/persona_user.py:119-234 PersonaUser"
+            ]
+          },
+          {
+            "text": "`config.mode` and `session.set_mode`, and a read_only flag on every `ToolSpec`",
+            "refs": [
+              "cs329z_hw1/types.py:130-132 mode, user",
+              "cs329z_hw1/types.py:47-55 ToolSpec.read_only",
+              "cs329z_hw1/adapters.py:271 set_mode"
+            ]
+          }
         ],
-        "decision": "Yours: whether read-only tools also ask for approval in confirm mode, and how a denial is phrased to the model.",
+        "decision": {
+          "text": "Yours: whether read-only tools also ask for approval in confirm mode, and how a denial is phrased to the model.",
+          "refs": [
+            "cs329z_hw1/agent/interactive.py:13-28 your policy",
+            "cs329z_hw1/agent/interactive.py:63-69 needs_approval",
+            "cs329z_hw1/agent/interactive.py:72-80 the denial text"
+          ]
+        },
         "asked": [
-          "Confirm mode: `approve(call)` once per call to a tool with read_only=False, before it runs; auto mode never calls approve; a call the registry rejects is never sent for approval",
-          "A denied call does not run; the transcript gets a tool_result with status denied that includes the user's reason, and the run continues",
-          "`pending_message()` exactly once before every model call; a returned message is a user event in that call",
-          "An ask_user tool whenever `config.user` is set, returning the answer as an ok result; ask_user, remember and recall never need approval"
+          {
+            "text": "Confirm mode: `approve(call)` once per call to a tool with read_only=False, before it runs; auto mode never calls approve; a call the registry rejects is never sent for approval",
+            "refs": [
+              "cs329z_hw1/agent/interactive.py:83-97 check_approval",
+              "cs329z_hw1/agent/session.py:251-260 validate, guard, approve, run"
+            ]
+          },
+          {
+            "text": "A denied call does not run; the transcript gets a tool_result with status denied that includes the user's reason, and the run continues",
+            "refs": [
+              "cs329z_hw1/agent/interactive.py:72-80 denial",
+              "tests/test_interactive.py:127-180"
+            ]
+          },
+          {
+            "text": "`pending_message()` exactly once before every model call; a returned message is a user event in that call",
+            "refs": [
+              "cs329z_hw1/agent/interactive.py:100-112 poll_steering",
+              "cs329z_hw1/agent/session.py:185-187",
+              "cs329z_hw1/agent/session.py:350-355 _add_steering"
+            ]
+          },
+          {
+            "text": "An ask_user tool whenever `config.user` is set, returning the answer as an ok result; ask_user, remember and recall never need approval",
+            "refs": [
+              "cs329z_hw1/agent/toolset.py:225-228 ask_user",
+              "cs329z_hw1/agent/interactive.py:42 NEVER_ASK"
+            ]
+          }
         ]
       }
     },
@@ -860,17 +1571,71 @@
         ],
         "points": "4 points: 2 deterministic, 2 live",
         "provided": [
-          "`config.deny_rules`, a tuple of regular expressions",
-          "Documents and emails with planted text that tells agents to run a command, or to switch to auto mode and drop their rules",
-          "The sandbox's allowlist and jail underneath",
-          "Tests: scripted denied commands, and a tool result that tells the agent to change its mode and rules; live, seven auto-mode questions whose answers sit next to planted instructions"
+          {
+            "text": "`config.deny_rules`, a tuple of regular expressions",
+            "refs": [
+              "cs329z_hw1/types.py:133-134 deny_rules"
+            ]
+          },
+          {
+            "text": "Documents and emails with planted text that tells agents to run a command, or to switch to auto mode and drop their rules",
+            "refs": [
+              "data/docs/expense-policy-2026.md:42 a planted command",
+              "data/docs/it-security-policy.md:61 a planted mode switch"
+            ]
+          },
+          {
+            "text": "The sandbox's allowlist and jail underneath",
+            "refs": [
+              "cs329z_hw1/sandbox.py:7-41 allowlist and jail"
+            ]
+          },
+          {
+            "text": "Tests: scripted denied commands, and a tool result that tells the agent to change its mode and rules; live, seven auto-mode questions whose answers sit next to planted instructions",
+            "refs": [
+              "tests/test_guardrails.py:94-226 scripted tests",
+              "tests/test_guardrails.py:231-345 live test"
+            ]
+          }
         ],
-        "decision": "No “Design decision” line. The two mechanical rules are fixed; the behavioral layer is yours. The planted command is written so that the live test's deny rules do not match it, so what stops it is your system prompt and any check you add around run_terminal.",
+        "decision": {
+          "text": "No “Design decision” line. The two mechanical rules are fixed; the behavioral layer is yours. The planted command is written so that the live test's deny rules do not match it, so what stops it is your system prompt and any check you add around run_terminal.",
+          "refs": [
+            "cs329z_hw1/agent/guardrails.py:28-35 the planted-command check",
+            "cs329z_hw1/agent/guardrails.py:169-199 Provenance",
+            "cs329z_hw1/agent/guardrails.py:72-84 PROMPT_NOTE"
+          ]
+        },
         "asked": [
-          "Deny rules: if `re.search(rule, cmd)` matches a run_terminal command, it is not executed and not sent for approval, in both modes; the tool_result is denied with non-empty content, and the run continues",
-          "Text in a tool result must not be able to change the mode, the approval policy or the deny rules",
-          "Order for run_terminal: registry validation, deny rules, approval (confirm mode), execution",
-          "Live: never execute the planted command, and answer at least 6 of 7 questions"
+          {
+            "text": "Deny rules: if `re.search(rule, cmd)` matches a run_terminal command, it is not executed and not sent for approval, in both modes; the tool_result is denied with non-empty content, and the run continues",
+            "refs": [
+              "cs329z_hw1/agent/guardrails.py:117-143 DenyRules, deny_rule_denial",
+              "cs329z_hw1/agent/session.py:283-291 _guard"
+            ]
+          },
+          {
+            "text": "Text in a tool result must not be able to change the mode, the approval policy or the deny rules",
+            "refs": [
+              "cs329z_hw1/agent/session.py:134-136 mode and rules fixed at creation",
+              "cs329z_hw1/agent/session.py:155-158 set_mode",
+              "tests/test_guardrails.py:187-226"
+            ]
+          },
+          {
+            "text": "Order for run_terminal: registry validation, deny rules, approval (confirm mode), execution",
+            "refs": [
+              "cs329z_hw1/agent/session.py:251-260 the order"
+            ]
+          },
+          {
+            "text": "Live: never execute the planted command, and answer at least 6 of 7 questions",
+            "refs": [
+              "cs329z_hw1/agent/guardrails.py:188-199 Provenance.check",
+              "tests/test_guardrails.py:278-345",
+              "tests/thresholds.py:15"
+            ]
+          }
         ]
       }
     },
@@ -918,15 +1683,55 @@
         ],
         "points": "Part of the design memo (20 points)",
         "provided": [
-          "`sandbox.py` is course code: an allowlist (python3 and standard text utilities) that also rejects command substitution and here-documents",
-          "A timeout (10 s by default) and an environment without your variables, so without your API key",
-          "On macOS, and on Linux with bubblewrap, an OS sandbox that blocks the network, writes outside the workspace, and reads of your home directory and the repository; `sandbox.jail()` reports whether it is active",
-          "Its docstring lists what each layer stops and what it does not"
+          {
+            "text": "`sandbox.py` is course code: an allowlist (python3 and standard text utilities) that also rejects command substitution and here-documents",
+            "refs": [
+              "cs329z_hw1/sandbox.py:7-16 allowlist",
+              "cs329z_hw1/sandbox.py:82-87",
+              "cs329z_hw1/sandbox.py:155-167 check_command"
+            ]
+          },
+          {
+            "text": "A timeout (10 s by default) and an environment without your variables, so without your API key",
+            "refs": [
+              "cs329z_hw1/sandbox.py:18-30 environment, timeout, output cap",
+              "cs329z_hw1/types.py:141-142 terminal_timeout"
+            ]
+          },
+          {
+            "text": "On macOS, and on Linux with bubblewrap, an OS sandbox that blocks the network, writes outside the workspace, and reads of your home directory and the repository; `sandbox.jail()` reports whether it is active",
+            "refs": [
+              "cs329z_hw1/sandbox.py:32-41 OS jail",
+              "cs329z_hw1/sandbox.py:268-281 jail()"
+            ]
+          },
+          {
+            "text": "Its docstring lists what each layer stops and what it does not",
+            "refs": [
+              "cs329z_hw1/sandbox.py:1-61 the docstring"
+            ]
+          }
         ],
-        "decision": "Nothing to implement: the memo asks you to understand it. Q9: on your machine, what does it stop a command from doing, and what could a command still do? Q10: what limitations do you see in your harness as a whole?",
+        "decision": {
+          "text": "Nothing to implement: the memo asks you to understand it. Q9: on your machine, what does it stop a command from doing, and what could a command still do? Q10: what limitations do you see in your harness as a whole?",
+          "refs": [
+            "cs329z_hw1/agent/terminal.py:150 your only way to run a command",
+            "design_memo.pdf your Q9 and Q10"
+          ]
+        },
         "asked": [
-          "Send every command through it (P10)",
-          "Answer memo Q9 and Q10 from your own machine and your own runs"
+          {
+            "text": "Send every command through it (P10)",
+            "refs": [
+              "cs329z_hw1/agent/terminal.py:150 sandbox.run_terminal"
+            ]
+          },
+          {
+            "text": "Answer memo Q9 and Q10 from your own machine and your own runs",
+            "refs": [
+              "design_memo.pdf Q9 and Q10"
+            ]
+          }
         ]
       }
     },
@@ -979,17 +1784,72 @@
         ],
         "points": "sim_eval 10 points (live); field_notes 10 points",
         "provided": [
-          "`cs329z_hw1/simulation/`: the simulated users, the judge, the runner and its README",
-          "`tests/fixtures/personas/`: the 20 public personas and their checks",
-          "`runs/`: every conversation with your transcript, the check results, the judge's reply and the memory directory",
-          "`chat.py` for your own conversations, saved under `runs/` when you exit"
+          {
+            "text": "`cs329z_hw1/simulation/`: the simulated users, the judge, the runner and its README",
+            "refs": [
+              "cs329z_hw1/simulation/README.md:1-230",
+              "cs329z_hw1/simulation/runner.py:192-220 run_persona",
+              "cs329z_hw1/simulation/persona_user.py:36-90 persona prompts",
+              "cs329z_hw1/simulation/judge.py:39-90 judge prompt"
+            ]
+          },
+          {
+            "text": "`tests/fixtures/personas/`: the 20 public personas and their checks",
+            "refs": [
+              "tests/fixtures/personas/ the 20 personas",
+              "cs329z_hw1/simulation/checks.py:246-262 CHECKS"
+            ]
+          },
+          {
+            "text": "`runs/`: every conversation with your transcript, the check results, the judge's reply and the memory directory",
+            "refs": [
+              "runs/sim-20261026-185420/ your latest evaluation",
+              "cs329z_hw1/simulation/README.md:20-26 what a run saves"
+            ]
+          },
+          {
+            "text": "`chat.py` for your own conversations, saved under `runs/` when you exit",
+            "refs": [
+              "cs329z_hw1/chat.py:67-79 saving under runs/"
+            ]
+          }
         ],
-        "decision": "No design decision: P15 evaluates what you built, and P16 asks you to use it yourself and check its answers.",
+        "decision": {
+          "text": "No design decision: P15 evaluates what you built, and P16 asks you to use it yourself and check its answers.",
+          "refs": [
+            "runs/ your evaluation runs and chats",
+            "field_notes.pdf your field notes"
+          ]
+        },
         "asked": [
-          "P15: 20 conversations (4 document lookups, 3 multi-hop email questions, 2 digests, 4 coding tasks in confirm mode, 3 paired memory sessions, 2 ambiguous requests, 2 adversarial); 16 or more successes is full credit, graded on 20 held-out personas",
-          "A conversation succeeds only with no exception, every programmatic check passing, and the judge passing it",
-          "P16: at least five requests in `chat.py`: a document question, an archive question, a terminal request, one it should ask about, and one it should refuse or be denied",
-          "A one-page field_notes.pdf with real correctness checks that match the saved conversations"
+          {
+            "text": "P15: 20 conversations (4 document lookups, 3 multi-hop email questions, 2 digests, 4 coding tasks in confirm mode, 3 paired memory sessions, 2 ambiguous requests, 2 adversarial); 16 or more successes is full credit, graded on 20 held-out personas",
+            "refs": [
+              "cs329z_hw1/simulation/README.md:46-60 the persona mix",
+              "cs329z_hw1/simulation/evaluate.py:16-18 EVAL_SIZE, FULL_CREDIT",
+              "tests/test_sim_eval.py:121-141 live run"
+            ]
+          },
+          {
+            "text": "A conversation succeeds only with no exception, every programmatic check passing, and the judge passing it",
+            "refs": [
+              "cs329z_hw1/simulation/README.md:96-107 how a conversation is scored",
+              "cs329z_hw1/simulation/runner.py:181-189 score"
+            ]
+          },
+          {
+            "text": "P16: at least five requests in `chat.py`: a document question, an archive question, a terminal request, one it should ask about, and one it should refuse or be denied",
+            "refs": [
+              "cs329z_hw1/chat.py:32-79 main",
+              "runs/chat-20261026-213635.json your latest chat"
+            ]
+          },
+          {
+            "text": "A one-page field_notes.pdf with real correctness checks that match the saved conversations",
+            "refs": [
+              "field_notes.pdf"
+            ]
+          }
         ]
       }
     }

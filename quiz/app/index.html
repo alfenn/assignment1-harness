@@ -113,7 +113,7 @@ button, textarea, input { font: inherit; color: inherit; }
 .spacer { flex: 1; }
 
 /* main column */
-.main { min-width: 0; display: grid; gap: 22px; }
+.main { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 22px; }
 .eyebrow { font-family: var(--f-mono); font-size: 12px; color: var(--accent); letter-spacing: 0.02em; }
 .qhead { display: grid; gap: 8px; }
 .qhead h2 { font-size: 26px; font-weight: 600; line-height: 1.2; }
@@ -127,8 +127,11 @@ details.context summary { cursor: pointer; padding: 8px 12px; font-family: var(-
 details.context[open] summary { border-bottom: 1px solid var(--line); }
 .ctx { display: grid; gap: 14px; padding: 12px 14px 14px; line-height: 1.5; }
 .ctx-h { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 4px; }
-.ctx ul { margin: 0; padding-left: 20px; display: grid; gap: 3px; }
+.ctx ul { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
 .ctx p { margin: 0; }
+.ctx-refs { display: flex; flex-wrap: wrap; gap: 1px 12px; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
+.ctx-refs span { min-width: 0; overflow-wrap: anywhere; }
+.ctx-refs code { font-size: 11.5px; }
 .field { display: grid; gap: 6px; }
 .field label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .field label .aux { text-transform: none; letter-spacing: 0; font-weight: 400; font-family: var(--f-mono); }
@@ -170,7 +173,11 @@ details.model .md { margin-top: 8px; }
 .activity .live { display: flex; gap: 8px; align-items: center; color: var(--fg); }
 .history { font-size: 13.5px; }
 .history summary { cursor: pointer; color: var(--muted); }
-.history .past { border-left: 2px solid var(--line); padding: 4px 0 4px 12px; margin-top: 8px; display: grid; gap: 4px; }
+.history .past { border-left: 2px solid var(--line); padding: 4px 0 4px 12px; margin-top: 8px; }
+.history .past > summary { color: var(--fg); }
+.history .past[open] > summary { margin-bottom: 10px; }
+.history .past > div { display: grid; gap: 12px; }
+.flash { box-shadow: 0 0 0 2px var(--accent); border-radius: var(--r); }
 
 /* follow-up thread */
 .thread { display: grid; gap: 10px; }
@@ -199,8 +206,15 @@ details.model .md { margin-top: 8px; }
 .mode strong { font-family: var(--f-display); font-size: 19px; font-weight: 600; }
 .mode span { color: var(--muted); font-size: 14px; }
 .toc { display: grid; gap: 0; max-width: 760px; border-top: 1px solid var(--line); }
-.toc-row { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); font-size: 14px; align-items: baseline; }
+.toc-row { display: grid; grid-template-columns: 20px 24px minmax(0, 1fr) auto; gap: 4px 10px; padding: 8px 2px; border-bottom: 1px solid var(--line); font-size: 14px; align-items: baseline; }
 .toc-row .mono { color: var(--muted); font-size: 12px; }
+.toc-row input { margin: 0; accent-color: var(--accent); align-self: center; }
+.toc-row label { cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+.toc-answers { grid-column: 3 / -1; display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; font-size: 12.5px; color: var(--muted); }
+.ans { display: inline-flex; gap: 5px; align-items: center; padding: 1px 6px 1px 1px; border-radius: 4px; color: var(--muted); text-decoration: none; white-space: nowrap; }
+.ans:hover { color: var(--fg); background: var(--sunken); }
+.toc-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; max-width: 760px; }
+@media (max-width: 560px) { .toc-row .toc-tag { grid-column: 3 / -1; } }
 .section-h { font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-family: var(--f-body); font-weight: 600; }
 .attempts { display: grid; gap: 8px; max-width: 760px; }
 .attempt { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); }
@@ -269,21 +283,28 @@ function errMsg(e) {
   if (e instanceof TypeError) return "The quiz server is not answering. Start it with: python3 quiz/app/server.py";
   return String(e?.message || e || "Something went wrong.");
 }
-function modeLabel(mode) { return mode === "quick" ? "Quick round" : mode === "retake" ? "Retake" : "Full practice"; }
+function modeLabel(mode) { return { quick: "Quick round", retake: "Retake", custom: "Custom quiz" }[mode] || "Full practice"; }
 
 // Handout references. The app serves the PDF at /handout.pdf; a saved report
 // in quiz/quizN/ links to the copy in the repository root.
 function pagesLabel(p) { return p.length > 1 ? `pp. ${p[0]}–${p[1]}` : `p. ${p[0]}`; }
 function handoutHref(page, report) { return `${report ? "../../" + HANDOUT : "/handout.pdf"}#page=${page}`; }
 function contextSummary(q) { const s = q.context.sources[0]; return `${s.label.split(":")[0]} · ${pagesLabel(s.pages)}`; }
+// A context item is {text, refs}; a ref is "path:lines label" (lines optional).
+function splitRef(r) { const m = String(r).match(/^(\S+)\s*(.*)$/); return m ? [m[1], m[2]] : [String(r), ""]; }
+function refsHTML(refs) {
+  if (!refs?.length) return "";
+  return `<div class="ctx-refs">${refs.map(r => { const [at, label] = splitRef(r); return `<span><code>${esc(at)}</code>${label ? " " + esc(label) : ""}</span>`; }).join("")}</div>`;
+}
+function refsMD(refs) { return (refs || []).map(r => { const [at, label] = splitRef(r); return `\`${at}\`${label ? " " + label : ""}`; }).join(" · "); }
 function contextHTML(q, report = false) {
   const c = q.context; if (!c) return "";
-  const list = xs => `<ul>${xs.map(x => `<li>${inline(x)}</li>`).join("")}</ul>`;
+  const list = xs => `<ul>${xs.map(x => `<li>${inline(x.text)}${refsHTML(x.refs)}</li>`).join("")}</ul>`;
   const src = c.sources.map(s => `<li>${esc(s.label)}, <a href="${handoutHref(s.pages[0], report)}" target="_blank" rel="noopener">${pagesLabel(s.pages)}</a></li>`).join("");
   return `<details class="context"><summary>Handout context: ${esc(contextSummary(q))}</summary><div class="ctx">
     <div><div class="ctx-h">Where in the handout</div><ul>${src}</ul><div class="note">${esc(c.points)}</div></div>
     <div><div class="ctx-h">Provided by the starter code</div>${list(c.provided)}</div>
-    <div><div class="ctx-h">The design decision</div><p>${inline(c.decision)}</p></div>
+    <div><div class="ctx-h">The design decision</div><p>${inline(c.decision.text)}</p>${refsHTML(c.decision.refs)}</div>
     <div><div class="ctx-h">What you had to implement</div>${list(c.asked)}</div>
   </div></details>`;
 }
@@ -484,19 +505,39 @@ function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { co
 
 function startAttempt(mode, order) {
   if (!order) order = mode === "quick" ? shuffle(QUESTIONS.map(q => q.id)).slice(0, 5) : QUESTIONS.map(q => q.id);
+  if (!order.length) { toast("Pick at least one question."); return; }
   state.attempt = { id: newId(), mode, order, startedAt: now(), updatedAt: now(), status: "in_progress", finishedAt: null, savedDir: null };
   state.items = {};
   for (const k of Object.keys(timers)) delete timers[k];
   persist(true);
   go("question", 0);
 }
-async function openAttempt(id) {
+// Open an attempt; with qid, at that question, scrolled to try k (0-based).
+async function openAttempt(id, qid, k) {
   try {
     const data = await api(`/api/attempts/${id}`);
     state.attempt = data.attempt; state.items = data.items || {};
-    for (const k of Object.keys(timers)) delete timers[k];
-    go(state.attempt.status === "finished" ? "summary" : "question", 0);
+    for (const key of Object.keys(timers)) delete timers[key];
+    const i = qid ? state.attempt.order.indexOf(qid) : -1;
+    if (i < 0) return go(state.attempt.status === "finished" ? "summary" : "question", 0);
+    go("question", i);
+    showTry(qid, Number(k));
   } catch (e) { toast(errMsg(e)); }
+}
+function showTry(qid, k) {
+  const subs = itemFor(qid).submissions;
+  let el;
+  if (!subs.length) el = document.getElementById(`answer-${qid}`);
+  else if (k >= 0 && k < subs.length - 1) {
+    const hist = document.querySelector(`#grade-${qid} details.history`);
+    el = document.getElementById(`try-${qid}-${k}`);
+    if (hist) hist.open = true;
+    if (el) el.open = true;
+  } else el = document.querySelector(`#grade-${qid} > .result`);
+  if (!el) return;
+  el.scrollIntoView({ block: "start" });
+  el.classList.add("flash");
+  setTimeout(() => el.classList.remove("flash"), 1800);
 }
 function currentQid() { return state.view === "question" && state.attempt ? state.attempt.order[state.current] : null; }
 
@@ -551,9 +592,10 @@ function toMarkdown() {
     if (c) {
       out.push(`<details><summary>Handout context: ${esc(contextSummary(q))}</summary>`, "");
       out.push(...c.sources.map(s => `- ${s.label}, [${pagesLabel(s.pages)}](${handoutHref(s.pages[0], true)})`), `- ${c.points}`, "");
-      out.push("**Provided by the starter code**", "", bullets(c.provided), "");
-      out.push("**The design decision**", "", c.decision, "");
-      out.push("**What you had to implement**", "", bullets(c.asked), "", "</details>", "");
+      const withRefs = xs => bullets(xs.map(x => `${x.text}<br>${refsMD(x.refs)}`));
+      out.push("**Provided by the starter code**", "", withRefs(c.provided), "");
+      out.push("**The design decision**", "", c.decision.text, "", refsMD(c.decision.refs), "");
+      out.push("**What you had to implement**", "", withRefs(c.asked), "", "</details>", "");
     }
     if (!it.submissions.length) {
       out.push(it.answer ? `### Draft (not submitted)\n\n${quote(it.answer)}\n` : "_Not answered._", "");
@@ -596,7 +638,7 @@ function reportHTML() {
       <blockquote class="answer md">${md(s.answer)}</blockquote>
       ${s.refs ? `<pre><code>${esc(s.refs)}</code></pre>` : ""}
       ${gradeHTML(s, { openModel: true })}
-      ${(s.thread || []).length ? `<div class="thread">${s.thread.map(t => `<div class="msg ${t.role}"><div class="who">${t.role === "user" ? "You" : "Grader"}</div><div class="md">${md(t.content)}</div></div>`).join("")}</div>` : ""}`).join("")
+      ${threadLogHTML(s.thread)}`).join("")
       : (it.answer ? `<p class="note">Draft, not submitted:</p><blockquote class="answer md">${md(it.answer)}</blockquote>` : `<p class="note">Not answered.</p>`);
     return `<section class="report-q" id="q-${id}"><div class="eyebrow">Question ${i + 1} · ${esc(q.tag)}</div><h2>${esc(q.title)}</h2><div class="ask"><p>${esc(q.prompt)}</p></div>${contextHTML(q, true)}${body}</section>`;
   }).join("");
@@ -649,34 +691,78 @@ function setPill(id, mode, text) {
 }
 function setSync(mode) { setPill("pill-sync", mode, mode === "err" ? "Autosave failed: is the server running?" : "Autosave: quiz/.attempts"); }
 
+let PAST = []; // attempt summaries from /api/attempts, newest first
+const picked = new Set(); // question ids ticked for a custom quiz
+
+// Every answer to each question across all attempts, newest first.
+function answersByQuestion() {
+  const by = {};
+  for (const a of PAST) {
+    for (const [qid, rows] of Object.entries(a.responses || {})) {
+      rows.forEach((r, k) => (by[qid] ||= []).push({ ...r, id: a.id, mode: a.mode, qid, k, n: rows.length }));
+    }
+  }
+  for (const list of Object.values(by)) list.sort((x, y) => String(y.at || "").localeCompare(String(x.at || "")));
+  return by;
+}
+function answerLinks(list) {
+  if (!list?.length) return "";
+  return `<div class="toc-answers"><span>Your answers:</span>${list.map(r => {
+    const chip = r.draft ? `<span class="chip s0">draft</span>` : r.score ? `<span class="chip ${scoreClass(r.score)}">${r.score}/5</span>` : `<span class="chip s0">–</span>`;
+    const what = r.draft ? "unsubmitted draft" : `try ${r.k + 1} of ${r.n}`;
+    return `<a href="#" class="ans" data-act="open" data-id="${esc(r.id)}" data-q="${esc(r.qid)}" data-k="${r.k}" title="${esc(`${modeLabel(r.mode)} ${r.id}, ${what}`)}">${chip}${esc(fmtDate(r.at))}</a>`;
+  }).join("")}</div>`;
+}
+function customLabel() { return picked.size ? `Start a custom quiz with ${picked.size} question${picked.size > 1 ? "s" : ""}` : "Tick questions to build a custom quiz"; }
+function syncPicks() {
+  document.querySelectorAll("input[data-pick]").forEach(cb => { cb.checked = picked.has(cb.dataset.pick); });
+  const b = document.getElementById("custom-start");
+  if (b) { b.disabled = !picked.size; b.textContent = customLabel(); }
+}
+
 async function renderStart() {
+  drawStart();
+  try { PAST = (await api("/api/attempts")).attempts || []; } catch { return; }
+  if (state.view === "start") drawStart();
+}
+function drawStart() {
+  const answers = answersByQuestion();
+  const past = PAST.length ? `<div><div class="section-h" style="margin-bottom:8px">Your attempts</div><div class="attempts">${PAST.slice(0, 10).map(a => {
+    const sc = Object.values(a.scores || {}); const avg = sc.length ? (sc.reduce((x, y) => x + y, 0) / sc.length).toFixed(1) : null;
+    return `<div class="attempt"><div><div>${esc(fmtDate(a.startedAt))} · ${esc(modeLabel(a.mode))}</div>
+      <div class="meta">${sc.length} of ${a.order?.length || "?"} graded${avg ? ` · average ${avg}/5` : ""} · ${a.status === "finished" ? "finished" : "in progress"}${a.savedDir ? ` · saved in ${esc(a.savedDir)}/` : ""}</div></div>
+      <div class="row"><button class="btn small" data-act="open" data-id="${esc(a.id)}">${a.status === "finished" ? "Review" : "Resume"}</button></div></div>`;
+  }).join("")}</div></div>` : "";
   app.innerHTML = `
   <div class="main" style="max-width:820px">
     <section class="hero">
       <div class="eyebrow">&lt;tool_call&gt; {"name": "oral_quiz", "args": {"minutes": 10}} &lt;/tool_call&gt;</div>
       <h2>Explain your harness the way the TAs will ask.</h2>
-      <p>There is one question for every problem box in the handout (Problems 1–14), plus the sandbox and the evaluation write-ups. Each one opens with the handout context: the problem and its page, what the starter code gave you, the design decision, and what you had to build. Answer in a few sentences and list the code you would point to on your laptop. Claude Code grades it 1 to 5 in this repository, reading your working tree${INFO ? ` (now at <code>${esc(INFO.head)}</code>)` : ""} to check every line you cite. Ask follow-ups on any grade, then save the session into <code>quiz/quizN/</code>.</p>
+      <p>There is one question for every problem box in the handout (Problems 1–14), plus the sandbox and the evaluation write-ups. Each one opens with the handout context: the problem and its page, what the starter code gave you, the design decision, and what you had to build, each with the files and lines it refers to. Answer in a few sentences and list the code you would point to on your laptop. Claude Code grades it 1 to 5 in this repository, reading your working tree${INFO ? ` (now at <code>${esc(INFO.head)}</code>)` : ""} to check every line you cite. Ask follow-ups on any grade, then save the session into <code>quiz/quizN/</code>.</p>
     </section>
     <div class="modes">
       <button class="mode" data-act="start" data-mode="full"><strong>Full practice</strong><span>All ${QUESTIONS.length} questions in handout order. About ${QUESTIONS.length * 2} minutes.</span></button>
-      <button class="mode" data-act="start" data-mode="quick"><strong>Quick round</strong><span>5 questions, shuffled, close to the real 10 minutes.</span></button>
+      <button class="mode" data-act="start" data-mode="quick"><strong>Quick round</strong><span>5 of the ${QUESTIONS.length} questions, picked at random and shuffled, close to the real 10 minutes.</span></button>
+      <button class="mode" data-act="to-list"><strong>Custom quiz</strong><span>Choose the questions yourself in the list below.</span></button>
     </div>
-    <div id="past"></div>
-    <div class="section-h">What you will be asked about</div>
+    ${past}
+    <div class="section-h" id="all-questions">All questions</div>
+    <div class="toc-bar">
+      <button class="btn primary small" id="custom-start" data-act="custom" ${picked.size ? "" : "disabled"}>${customLabel()}</button>
+      <button class="btn small ghost" data-act="pick-all">Select all</button>
+      <button class="btn small ghost" data-act="pick-none">Clear</button>
+      <span class="note">Each row links to your answers to that question in every attempt.</span>
+    </div>
     <div class="toc">
-      ${QUESTIONS.map((q, i) => `<div class="toc-row"><span class="mono">${i + 1}</span><span>${esc(q.title)}</span><span class="mono">${esc(q.tag)} · ${pagesLabel(q.context.sources[0].pages)}</span></div>`).join("")}
+      ${QUESTIONS.map((q, i) => `<div class="toc-row">
+        <input type="checkbox" id="pick-${q.id}" data-pick="${q.id}" ${picked.has(q.id) ? "checked" : ""}>
+        <span class="mono">${i + 1}</span>
+        <label for="pick-${q.id}">${esc(q.title)}</label>
+        <span class="mono toc-tag">${esc(q.tag)} · ${pagesLabel(q.context.sources[0].pages)}</span>
+        ${answerLinks(answers[q.id])}
+      </div>`).join("")}
     </div>
   </div>`;
-  let past = [];
-  try { past = (await api("/api/attempts")).attempts || []; } catch { return; }
-  const el = document.getElementById("past");
-  if (!el || !past.length) return;
-  el.innerHTML = `<div class="section-h" style="margin-bottom:8px">Your attempts</div><div class="attempts">${past.slice(0, 10).map(a => {
-    const sc = Object.values(a.scores || {}); const avg = sc.length ? (sc.reduce((x, y) => x + y, 0) / sc.length).toFixed(1) : null;
-    return `<div class="attempt"><div><div>${esc(fmtDate(a.startedAt))} · ${esc(modeLabel(a.mode))}</div>
-      <div class="meta">${sc.length} of ${a.order?.length || "?"} graded${avg ? ` · average ${avg}/5` : ""} · ${a.status === "finished" ? "finished" : "in progress"}${a.savedDir ? ` · saved in ${esc(a.savedDir)}/` : ""}</div></div>
-      <div class="row"><button class="btn small" data-act="open" data-id="${esc(a.id)}">${a.status === "finished" ? "Review" : "Resume"}</button></div></div>`;
-  }).join("")}</div>`;
 }
 
 function railHTML() {
@@ -771,6 +857,12 @@ function gradeHTML(sub, opts = {}) {
   </section>`;
 }
 
+// A finished follow-up thread, read-only (earlier tries and the saved report).
+function threadLogHTML(thread) {
+  if (!thread?.length) return "";
+  return `<div class="thread">${thread.map(t => `<div class="msg ${t.role}"><div class="who">${t.role === "user" ? "You" : "Grader"}</div><div class="md">${md(t.content)}</div></div>`).join("")}</div>`;
+}
+
 function renderGradeArea(qid) {
   const el = document.getElementById(`grade-${qid}`); if (!el) return;
   const item = itemFor(qid), subs = item.submissions;
@@ -782,7 +874,10 @@ function renderGradeArea(qid) {
   if (subs.length) {
     html += gradeHTML(subs[subs.length - 1]);
     if (subs.length > 1) {
-      html += `<details class="history"><summary>Earlier tries (${subs.length - 1})</summary>${subs.slice(0, -1).map((s, k) => `<div class="past"><div><span class="chip ${scoreClass(s.grade.score)}">${s.grade.score}/5</span> Try ${k + 1} · ${esc(fmtDate(s.at))}${s.thread?.length ? ` · ${s.thread.length} follow-up messages` : ""}</div><div>${inline(s.grade.verdict)}</div><div class="note">${esc(s.answer.slice(0, 280))}${s.answer.length > 280 ? "…" : ""}</div></div>`).join("")}</details>`;
+      html += `<details class="history"><summary>Earlier tries (${subs.length - 1})</summary>${subs.slice(0, -1).map((s, k) => `<details class="past" id="try-${qid}-${k}">
+        <summary><span class="chip ${scoreClass(s.grade.score)}">${s.grade.score}/5</span> Try ${k + 1} · ${esc(fmtDate(s.at))}${s.thread?.length ? ` · ${s.thread.length} follow-up messages` : ""} · ${inline(s.grade.verdict)}</summary>
+        <div><blockquote class="answer md">${md(s.answer)}</blockquote>${s.refs ? `<pre><code>${esc(s.refs)}</code></pre>` : ""}${gradeHTML(s)}${threadLogHTML(s.thread)}</div>
+      </details>`).join("")}</details>`;
     }
   } else if (item.lastError && !inflight[qid]) {
     html += `<p class="warn">${esc(item.lastError)}</p>`;
@@ -856,7 +951,16 @@ app.addEventListener("click", e => {
     const weak = state.attempt.order.filter(id => { const g = lastGrade(state.items[id]); return !g || g.score <= 3; });
     return startAttempt("retake", weak);
   }
-  if (act === "open") return openAttempt(t.dataset.id);
+  if (act === "open") return openAttempt(t.dataset.id, qid, t.dataset.k);
+  if (act === "to-list") { document.getElementById("all-questions")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (act === "custom") return startAttempt("custom", QUESTIONS.map(q => q.id).filter(id => picked.has(id)));
+  if (act === "pick-all") { QUESTIONS.forEach(q => picked.add(q.id)); return syncPicks(); }
+  if (act === "pick-none") { picked.clear(); return syncPicks(); }
+});
+app.addEventListener("change", e => {
+  const id = e.target.dataset?.pick; if (!id) return;
+  if (e.target.checked) picked.add(id); else picked.delete(id);
+  syncPicks();
 });
 app.addEventListener("input", e => {
   const m = (e.target.id || "").match(/^(answer|refs|followup)-(.+)$/); if (!m) return;

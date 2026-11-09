@@ -137,10 +137,15 @@ def rubric_text(q: dict) -> str:
 def handout_text(q: dict) -> str:
     c = q["context"]
     where = "; ".join(f"{s['label']}, p. {'-'.join(map(str, s['pages']))}" for s in c["sources"])
+
+    def item(x: dict) -> str:
+        return x["text"] + (f" [{'; '.join(x['refs'])}]" if x["refs"] else "")
+
     return (
         f"Source in {BANK['handout']}: {where}\n"
-        "What the handout asked for:\n" + "\n".join(f"- {a}" for a in c["asked"])
-        + f"\nDesign decision: {c['decision']}"
+        "What the starter code provided:\n" + "\n".join(f"- {item(p)}" for p in c["provided"])
+        + "\nWhat the handout asked for:\n" + "\n".join(f"- {item(a)}" for a in c["asked"])
+        + f"\nDesign decision: {item(c['decision'])}"
     )
 
 
@@ -308,13 +313,20 @@ def load_attempt(attempt_id: str) -> Optional[dict]:
 
 
 def summary(state: dict) -> dict:
+    """An attempt's header, its latest score per question, and every answer it
+    holds per question (graded tries, or one unsubmitted draft)."""
     a = state.get("attempt") or {}
-    scores = {}
+    scores, responses = {}, {}
     for qid, item in (state.get("items") or {}).items():
         subs = item.get("submissions") or []
         if subs and subs[-1].get("grade"):
             scores[qid] = subs[-1]["grade"]["score"]
-    return {**a, "scores": scores}
+        rows = [{"at": s.get("at"), "score": (s.get("grade") or {}).get("score")} for s in subs]
+        if not rows and (item.get("answer") or "").strip():
+            rows = [{"at": a.get("updatedAt"), "score": None, "draft": True}]
+        if rows:
+            responses[qid] = rows
+    return {**a, "scores": scores, "responses": responses}
 
 
 def target_dir(current: Optional[str]) -> Path:
