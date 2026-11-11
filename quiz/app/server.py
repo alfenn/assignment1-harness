@@ -22,6 +22,10 @@ shows the file as it is in the working tree with those lines marked, and links
 to the same place in your editor (``--editor``). It serves only what git tracks
 or would track, so ignored files such as ``.env`` are never shown.
 
+Sample answers live in ``quiz/samples/<question id>.md``, one Markdown file per
+question (``GET /api/samples``, ``PUT /api/samples/<id>``). The page shows and
+edits them, and can replace one with a graded answer of yours.
+
 Attempts in progress are kept in ``quiz/.attempts/<id>.json``. "Save to quiz/"
 writes ``quiz/quizN/`` (the lowest-numbered empty one, else the next number) with
 ``quiz.md`` (the transcript), ``quiz.json`` (all data, rubric included) and
@@ -55,6 +59,7 @@ APP_DIR = Path(__file__).resolve().parent
 QUIZ_DIR = APP_DIR.parent
 REPO = QUIZ_DIR.parent
 ATTEMPTS_DIR = QUIZ_DIR / ".attempts"
+SAMPLES_DIR = QUIZ_DIR / "samples"
 BANK_PATH = APP_DIR / "questions.json"
 PUBLIC_FIELDS = ("id", "title", "tag", "prompt", "hints", "context")
 
@@ -401,6 +406,48 @@ def write_atomic(path: Path, text: str) -> None:
     os.replace(tmp, path)
 
 
+# Sample answers: quiz/samples/<qid>.md, one per question, written so they read
+# well on GitHub and in an editor. The page reads the "## Answer" and "## Code
+# to point to" sections back; the title and question above them are rewritten
+# from the bank on every save.
+SAMPLE_ANSWER, SAMPLE_REFS = "## Answer", "## Code to point to"
+SAMPLE_SOURCE = re.compile(r"<!--\s*source:\s*(.*?)\s*-->", re.S)
+MAX_SAMPLE = 64 * 1024
+
+
+def sample_path(qid: str) -> Path:
+    return SAMPLES_DIR / f"{qid}.md"
+
+
+def read_sample(qid: str) -> Optional[dict]:
+    path = sample_path(qid)
+    if not path.is_file():
+        return None
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    source = SAMPLE_SOURCE.search(text)
+    _, found, body = text.partition(f"\n{SAMPLE_ANSWER}\n")
+    if not found:  # hand-edited without the heading: everything after the comment
+        body = text[source.end():] if source else text
+    answer, _, refs = body.partition(f"\n{SAMPLE_REFS}\n")
+    return {
+        "answer": answer.strip(),
+        "refs": "\n".join(re.sub(r"^\s*[-*]\s+", "", l).rstrip() for l in refs.strip().splitlines() if l.strip()),
+        "source": source.group(1) if source else "",
+        "updated": time.strftime("%Y-%m-%dT%H:%M:%S%z", time.localtime(path.stat().st_mtime)),
+    }
+
+
+def write_sample(q: dict, answer: str, refs: str, source: str) -> dict:
+    refs_md = "\n".join(f"- {l.strip()}" for l in refs.splitlines() if l.strip())
+    source = " ".join(source.replace("--", "-").split())  # keep the comment closed
+    text = (
+        f"# {q['title']}\n\n*{q['tag']}*\n\n> {q['prompt']}\n\n<!-- source: {source} -->\n\n"
+        f"{SAMPLE_ANSWER}\n\n{answer.strip()}\n\n{SAMPLE_REFS}\n\n{refs_md}\n"
+    )
+    write_atomic(sample_path(q["id"]), text)
+    return read_sample(q["id"])
+
+
 def ensure_attempts_dir() -> None:
     ATTEMPTS_DIR.mkdir(parents=True, exist_ok=True)
     ignore = ATTEMPTS_DIR / ".gitignore"
@@ -532,6 +579,8 @@ class Handler(BaseHTTPRequestHandler):
                 "chips": b["chips"], "handout": b["handout"],
                 "questions": [{k: q[k] for k in PUBLIC_FIELDS} for q in b["questions"]],
             })
+        if path == "/api/samples":
+            return self._json(200, {"samples": {q["id"]: s for q in b["questions"] if (s := read_sample(q["id"]))}})
         if path == "/api/attempts":
             out = []
             for p in sorted(ATTEMPTS_DIR.glob("a-*.json"), reverse=True):
@@ -549,6 +598,9 @@ class Handler(BaseHTTPRequestHandler):
     def do_PUT(self) -> None:
         if not self._trusted():
             return self._json(403, {"error": "forbidden"})
+        m = re.fullmatch(r"/api/samples/([^/]+)", self.path)
+        if m:
+            return self._put_sample(m.group(1))
         m = re.fullmatch(r"/api/attempts/([^/]+)", self.path)
         if not (m and ATTEMPT_ID.fullmatch(m.group(1))):
             return self._json(404, {"error": "not found"})
@@ -581,6 +633,22 @@ class Handler(BaseHTTPRequestHandler):
         if m and ATTEMPT_ID.fullmatch(m.group(1)):
             return self._save(m.group(1), body)
         return self._json(404, {"error": "not found"})
+
+    def _put_sample(self, qid: str) -> None:
+        q = question(qid)
+        if q is None:
+            return self._json(404, {"error": "unknown question"})
+        try:
+            body = self._body()
+        except ValueError as exc:
+            return self._json(400, {"error": str(exc)})
+        answer, refs, source = (str(body.get(k) or "") for k in ("answer", "refs", "source"))
+        if not answer.strip():
+            return self._json(400, {"error": "the sample answer is empty"})
+        if len(answer) + len(refs) > MAX_SAMPLE:
+            return self._json(400, {"error": "the sample answer is too long"})
+        with attempt_lock("sample:" + qid):
+            return self._json(200, {"sample": write_sample(q, answer, refs, source)})
 
     # -- grading --
 

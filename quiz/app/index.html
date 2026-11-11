@@ -174,6 +174,7 @@ details.model summary { cursor: pointer; font-weight: 600; }
 details.model .md { margin-top: 8px; }
 .activity { font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); display: grid; gap: 3px; }
 .activity .live { display: flex; gap: 8px; align-items: center; color: var(--fg); }
+.grade-area { display: grid; gap: 14px; min-width: 0; }
 .history { font-size: 13.5px; }
 .history summary { cursor: pointer; color: var(--muted); }
 .history .past { border-left: 2px solid var(--line); padding: 4px 0 4px 12px; margin-top: 8px; }
@@ -231,6 +232,18 @@ details.model .md { margin-top: 8px; }
 .report-q { display: grid; gap: 12px; padding-block: 24px; border-top: 1px solid var(--line); }
 .report-q h3 { font-size: 15px; margin-top: 6px; }
 blockquote.answer { margin: 0; padding: 10px 14px; border-left: 3px solid var(--accent); background: var(--surface); border-radius: 0 var(--r) var(--r) 0; max-width: 72ch; }
+.samples-nav { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13.5px; max-width: 760px; }
+.samples-nav a { text-decoration: none; }
+.samples-nav a:hover { text-decoration: underline; }
+.sample-card { display: grid; gap: 10px; padding-top: 20px; border-top: 1px solid var(--line); scroll-margin-top: 12px; }
+.sample-card h2 { font-size: 22px; font-weight: 600; line-height: 1.2; }
+.sample-card .ask { font-size: 15.5px; color: var(--muted); }
+.sample-card > .md, details.sample > .md { max-width: 72ch; }
+details.sample { display: grid; gap: 10px; }
+details.sample[open] > summary { margin-bottom: 4px; }
+.toc-sample { font-size: 12.5px; color: var(--muted); text-decoration: none; white-space: nowrap; }
+.toc-sample:hover { color: var(--fg); text-decoration: underline; }
+.confirm > span { font-size: 13.5px; }
 </style>
 </head>
 <body>
@@ -738,6 +751,7 @@ const app = document.getElementById("app");
 function render() {
   if (state.view === "question" && state.attempt) return renderQuestionView();
   if (state.view === "summary" && state.attempt) return renderSummary();
+  if (state.view === "samples") return renderSamples();
   return renderStart();
 }
 function setPill(id, mode, text) {
@@ -800,6 +814,7 @@ function drawStart() {
       <button class="mode" data-act="start" data-mode="full"><strong>Full practice</strong><span>All ${QUESTIONS.length} questions in handout order. About ${QUESTIONS.length * 2} minutes.</span></button>
       <button class="mode" data-act="start" data-mode="quick"><strong>Quick round</strong><span>5 of the ${QUESTIONS.length} questions, picked at random and shuffled, close to the real 10 minutes.</span></button>
       <button class="mode" data-act="to-list"><strong>Custom quiz</strong><span>Choose the questions yourself in the list below.</span></button>
+      <button class="mode" data-act="samples"><strong>Sample answers</strong><span>A 5/5 answer to every question, with the code to point to. Read and edit them, or swap in your own once it is graded.</span></button>
     </div>
     ${past}
     <div class="section-h" id="all-questions">All questions</div>
@@ -814,7 +829,7 @@ function drawStart() {
         <input type="checkbox" id="pick-${q.id}" data-pick="${q.id}" ${picked.has(q.id) ? "checked" : ""}>
         <span class="mono">${i + 1}</span>
         <label for="pick-${q.id}">${esc(q.title)}</label>
-        <span class="mono toc-tag">${esc(q.tag)} · ${pagesLabel(q.context.sources[0].pages)}</span>
+        <span class="mono toc-tag">${esc(q.tag)} · ${pagesLabel(q.context.sources[0].pages)} · <a href="#" class="toc-sample" data-act="samples" data-q="${q.id}">sample</a></span>
         ${answerLinks(answers[q.id])}
       </div>`).join("")}
     </div>
@@ -875,7 +890,7 @@ function renderQuestion() {
       ${i > 0 ? `<button class="btn ghost" data-act="goto" data-i="${i - 1}">Previous</button>` : ""}
       ${i < n - 1 ? `<button class="btn" data-act="goto" data-i="${i + 1}">Next question</button>` : `<button class="btn" data-act="summary">Finish and save</button>`}
     </div>
-    <div id="grade-${qid}"></div>
+    <div id="grade-${qid}" class="grade-area"></div>
     <div id="thread-${qid}"></div>`;
   if (!last || item.answer !== last.answer) startTimer(qid);
   renderGradeArea(qid);
@@ -928,17 +943,20 @@ function renderGradeArea(qid) {
     html += `<div class="result"><div class="result-tag">&lt;tool_result name="<b>grader</b>" status="running"&gt;</div><div class="result-body"><div class="activity" id="activity-${qid}">${activityHTML(qid)}</div><div class="row"><button class="btn small" data-act="stop" data-q="${qid}">Stop</button></div></div></div>`;
   }
   if (subs.length) {
-    html += gradeHTML(subs[subs.length - 1]);
+    html += gradeHTML(subs[subs.length - 1]) + useSampleHTML(qid, subs.length - 1) + sampleBlockHTML(qid);
     if (subs.length > 1) {
-      html += `<details class="history"><summary>Earlier tries (${subs.length - 1})</summary>${subs.slice(0, -1).map((s, k) => `<details class="past" id="try-${qid}-${k}">
+      html += `<details class="history" id="history-${qid}"><summary>Earlier tries (${subs.length - 1})</summary>${subs.slice(0, -1).map((s, k) => `<details class="past" id="try-${qid}-${k}">
         <summary><span class="chip ${scoreClass(s.grade.score)}">${s.grade.score}/5</span> Try ${k + 1} · ${esc(fmtDate(s.at))}${s.thread?.length ? ` · ${s.thread.length} follow-up messages` : ""} · ${inline(s.grade.verdict)}</summary>
-        <div><blockquote class="answer md">${md(s.answer)}</blockquote>${s.refs ? refsBlock(s.refs) : ""}${gradeHTML(s)}${threadLogHTML(s.thread)}</div>
+        <div><blockquote class="answer md">${md(s.answer)}</blockquote>${s.refs ? refsBlock(s.refs) : ""}${gradeHTML(s)}${useSampleHTML(qid, k)}${threadLogHTML(s.thread)}</div>
       </details>`).join("")}</details>`;
     }
   } else if (item.lastError && !inflight[qid]) {
     html += `<p class="warn">${esc(item.lastError)}</p>`;
   }
+  // Redrawing keeps open whatever was unfolded (earlier tries, the sample).
+  const open = new Set([...el.querySelectorAll("details[open][id]")].map(d => d.id));
   el.innerHTML = html;
+  open.forEach(id => { const d = document.getElementById(id); if (d) d.open = true; });
 }
 
 function renderThread(qid) {
@@ -986,6 +1004,108 @@ function renderSummary() {
   </main></div>`;
 }
 
+// ---------------------------------------------------------------- samples --
+// One sample answer per question, kept in quiz/samples/<qid>.md. The Sample
+// answers view shows and edits them; under each graded try a button makes that
+// try the sample (it asks first when it would replace one).
+
+let SAMPLES = {}; // qid -> {answer, refs, source, updated}
+const sampleEdit = {}; // qid -> {answer, refs}: the editor is open with these drafts
+let samplePick = null; // {qid, k}: the try waiting for "Replace"
+
+async function saveSample(qid, answer, refs, source) {
+  const res = await api(`/api/samples/${qid}`, { method: "PUT", body: JSON.stringify({ answer, refs, source }) });
+  return (SAMPLES[qid] = res.sample);
+}
+function sampleBodyHTML(qid) {
+  const s = SAMPLES[qid];
+  if (!s) return `<p class="note">No sample answer yet.</p>`;
+  return `<div class="md">${md(s.answer)}</div>${s.refs ? refsBlock(s.refs) : ""}`;
+}
+function sampleSourceHTML(qid) {
+  const s = SAMPLES[qid];
+  return s ? `<span class="note">${esc(s.source || "No source noted")}${s.updated ? ` · saved ${esc(fmtDate(s.updated))}` : ""}</span>` : "";
+}
+
+async function renderSamples() {
+  drawSamples();
+  try { SAMPLES = (await api("/api/samples")).samples || {}; } catch { return; }
+  if (state.view === "samples") drawSamples();
+}
+function drawSamples() {
+  const back = state.attempt && state.samplesBack;
+  app.innerHTML = `<div class="main" style="max-width:820px">
+    <div class="row">${back ? `<button class="btn small" data-act="samples-back">Back to question ${back.current + 1}</button>` : ""}<button class="btn small ghost" data-act="home">All attempts</button></div>
+    <section class="hero">
+      <h2>Sample answers</h2>
+      <p>A 5/5 answer to every question, the way you might say it to the TA, with the code to point to. Edit any of them here or in <code>quiz/samples/</code> (one Markdown file per question). After a grade, “Make this my sample answer” swaps in your own.</p>
+    </section>
+    <nav class="samples-nav">${QUESTIONS.map((q, i) => `<a href="#sample-${q.id}">${i + 1}. ${esc(q.title)}</a>`).join("")}</nav>
+    ${QUESTIONS.map((q, i) => sampleCardHTML(q, i)).join("")}
+  </div>`;
+  if (state.sampleFocus) {
+    document.getElementById(`sample-${state.sampleFocus}`)?.scrollIntoView({ block: "start" });
+    state.sampleFocus = null;
+  }
+}
+function sampleCardHTML(q, i) {
+  const ed = sampleEdit[q.id];
+  const body = ed ? `
+    <div class="field"><label for="sample-answer-${q.id}"><span>Sample answer</span><span class="aux">markdown</span></label>
+      <textarea id="sample-answer-${q.id}" rows="12">${esc(ed.answer)}</textarea></div>
+    <div class="field"><label for="sample-refs-${q.id}"><span>Code to point to</span><span class="aux">file:line and a label, one per line</span></label>
+      <textarea id="sample-refs-${q.id}" class="refs" rows="6">${esc(ed.refs)}</textarea></div>
+    <div class="row"><button class="btn primary small" data-act="sample-save" data-q="${q.id}">Save</button><button class="btn small ghost" data-act="sample-cancel" data-q="${q.id}">Cancel</button><span class="note">⌘/Ctrl + Enter saves</span></div>`
+    : `${sampleBodyHTML(q.id)}
+    <div class="row">${sampleSourceHTML(q.id)}<span class="spacer"></span>
+      <button class="btn small" data-act="sample-edit" data-q="${q.id}">${SAMPLES[q.id] ? "Edit" : "Write one"}</button>
+      <button class="btn small ghost" data-act="practice" data-q="${q.id}">Practice this question</button></div>`;
+  return `<section class="sample-card" id="sample-${q.id}">
+    <div class="eyebrow">${i + 1} · ${esc(q.tag)}</div><h2>${esc(q.title)}</h2>
+    <div class="ask"><p>${esc(q.prompt)}</p></div>${body}</section>`;
+}
+function redrawSampleCard(qid) {
+  const el = document.getElementById(`sample-${qid}`), i = QUESTIONS.findIndex(q => q.id === qid);
+  if (el && i >= 0) el.outerHTML = sampleCardHTML(QUESTIONS[i], i);
+}
+async function submitSampleEdit(qid) {
+  const ed = sampleEdit[qid]; if (!ed) return;
+  if (!ed.answer.trim()) { toast("The sample answer is empty."); return; }
+  const base = (SAMPLES[qid]?.source || "Written by you").replace(/ · edited by you$/, "");
+  try {
+    await saveSample(qid, ed.answer, ed.refs, `${base} · edited by you`);
+    delete sampleEdit[qid];
+    toast(`Saved quiz/samples/${qid}.md`);
+  } catch (e) { toast(errMsg(e)); }
+  redrawSampleCard(qid);
+}
+
+// Under a graded try: the button that makes it the sample, then the sample itself.
+function useSampleHTML(qid, k) {
+  if (samplePick?.qid === qid && samplePick.k === k) {
+    return `<div class="row confirm"><span>Replace the current sample answer with this try?</span>
+      <button class="btn primary small" data-act="sample-use" data-q="${qid}" data-k="${k}">Replace</button>
+      <button class="btn small ghost" data-act="sample-keep" data-q="${qid}">Keep the sample</button></div>`;
+  }
+  return `<div class="row"><button class="btn small" data-act="sample-pick" data-q="${qid}" data-k="${k}">Make this my sample answer</button></div>`;
+}
+function sampleBlockHTML(qid) {
+  return `<details class="model sample" id="sample-under-${qid}"><summary>Sample answer</summary>${sampleBodyHTML(qid)}
+    <div class="row">${sampleSourceHTML(qid)}<span class="spacer"></span><button class="btn small ghost" data-act="samples" data-q="${qid}" data-edit="1">Edit in Sample answers</button></div></details>`;
+}
+async function useAsSample(qid, k) {
+  const a = state.attempt, s = itemFor(qid).submissions[k];
+  samplePick = null;
+  if (!s) return renderGradeArea(qid);
+  const source = `Your answer: try ${k + 1} in ${modeLabel(a.mode).toLowerCase()} ${a.id}, graded ${s.grade.score}/5 on ${fmtDate(s.at)}`;
+  try {
+    await saveSample(qid, s.answer, s.refs || "", source);
+    toast(`This try is now the sample answer (quiz/samples/${qid}.md)`);
+  } catch (e) { toast(errMsg(e)); }
+  renderGradeArea(qid);
+  const d = document.getElementById(`sample-under-${qid}`); if (d) d.open = true;
+}
+
 // ------------------------------------------------------------------ events --
 
 app.addEventListener("click", e => {
@@ -1010,6 +1130,29 @@ app.addEventListener("click", e => {
   if (act === "open") return openAttempt(t.dataset.id, qid, t.dataset.k);
   if (act === "to-list") { document.getElementById("all-questions")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
   if (act === "custom") return startAttempt("custom", QUESTIONS.map(q => q.id).filter(id => picked.has(id)));
+  if (act === "samples") {
+    const cur = currentQid(); if (cur) { pauseTimer(cur); flushDraft(cur); }
+    state.samplesBack = state.view === "question" || state.view === "summary" ? { view: state.view, current: state.current } : null;
+    if (qid && t.dataset.edit && !sampleEdit[qid]) sampleEdit[qid] = { answer: SAMPLES[qid]?.answer || "", refs: SAMPLES[qid]?.refs || "" };
+    state.view = "samples"; state.sampleFocus = qid || null;
+    if (!qid) window.scrollTo(0, 0);
+    return render();
+  }
+  if (act === "samples-back") return go(state.samplesBack.view, state.samplesBack.current);
+  if (act === "practice") return startAttempt("custom", [qid]);
+  if (act === "sample-edit") {
+    sampleEdit[qid] = { answer: SAMPLES[qid]?.answer || "", refs: SAMPLES[qid]?.refs || "" };
+    redrawSampleCard(qid); document.getElementById(`sample-answer-${qid}`)?.focus(); return;
+  }
+  if (act === "sample-cancel") { delete sampleEdit[qid]; return redrawSampleCard(qid); }
+  if (act === "sample-save") return submitSampleEdit(qid);
+  if (act === "sample-pick") {
+    const k = Number(t.dataset.k);
+    if (!SAMPLES[qid]) return useAsSample(qid, k);
+    samplePick = { qid, k }; return renderGradeArea(qid);
+  }
+  if (act === "sample-use") return useAsSample(qid, Number(t.dataset.k));
+  if (act === "sample-keep") { samplePick = null; return renderGradeArea(qid); }
   if (act === "pick-all") { QUESTIONS.forEach(q => picked.add(q.id)); return syncPicks(); }
   if (act === "pick-none") { picked.clear(); return syncPicks(); }
 });
@@ -1019,6 +1162,8 @@ app.addEventListener("change", e => {
   syncPicks();
 });
 app.addEventListener("input", e => {
+  const sm = (e.target.id || "").match(/^sample-(answer|refs)-(.+)$/);
+  if (sm) { if (sampleEdit[sm[2]]) sampleEdit[sm[2]][sm[1]] = e.target.value; return; }
   const m = (e.target.id || "").match(/^(answer|refs|followup)-(.+)$/); if (!m) return;
   const item = itemFor(m[2]);
   if (m[1] === "answer") { item.answer = e.target.value; startTimer(m[2]); persist(); }
@@ -1028,7 +1173,9 @@ app.addEventListener("input", e => {
 app.addEventListener("keydown", e => {
   if (e.key !== "Enter" || !(e.metaKey || e.ctrlKey)) return;
   const id = e.target.id || "";
-  let m = id.match(/^(answer|refs)-(.+)$/);
+  let m = id.match(/^sample-(answer|refs)-(.+)$/);
+  if (m) { e.preventDefault(); return submitSampleEdit(m[2]); }
+  m = id.match(/^(answer|refs)-(.+)$/);
   if (m) { e.preventDefault(); return submitAnswer(m[2]); }
   m = id.match(/^followup-(.+)$/);
   if (m) { e.preventDefault(); const v = e.target.value; e.target.value = ""; askFollowup(m[1], v); }
@@ -1044,7 +1191,8 @@ addEventListener("pagehide", () => {
 
 (async function boot() {
   try {
-    const [bank, info] = await Promise.all([api("/api/questions"), api("/api/info")]);
+    const [bank, info, samples] = await Promise.all([api("/api/questions"), api("/api/info"), api("/api/samples").catch(() => ({}))]);
+    SAMPLES = samples.samples || {};
     QUESTIONS = bank.questions; CHIPS = bank.chips; INFO = info; HANDOUT = bank.handout || HANDOUT;
     setFiles(info.files || []);
     QBY = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
