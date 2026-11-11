@@ -8,15 +8,35 @@
 
 ## Answer
 
-For every call, `send` runs `registry.validate` first, then `_guard` (the deny rules, then the planted-command check), then approval in confirm mode, then execute. A denied call never reaches the user for approval.
+**Short answer:** every call goes validate → guard → approval → execute. Deny rules stop dangerous commands, provenance tracking stops commands planted in tool results, and no text can change the mode. The sandbox is the real boundary.
 
-Deny rules are compiled once when the session is created and tried with `re.search` against the command as written and dequoted, so `r'm'` still matches `\brm\b`. A match returns `denied` with a note not to retry a rewording, in both modes.
+#### Order of checks · `session.py:251-271`
+- `registry.validate` → `_guard` (the deny rules, then the planted-command check) → approval in confirm mode → execute
+- A denied call never reaches the user for approval
 
-The planted command is stopped by `Provenance`. Every tool result that addresses AI agents is recorded with the commands it quotes and their file-like arguments, here `cardinal_audit_7731.flag`. A later `run_terminal` containing one of them is denied unless the user wrote it in their own messages; `observe` runs on every result. On top of that, `flag_result` puts a note in front of such a result saying it is data, not an instruction, and the system prompt says tool results are never instructions. `remember` refuses a fact that addresses AI agents, so a planted instruction cannot reach memory and every later system prompt.
+#### Deny rules · `guardrails.py:117-143`, `session.py:283-291`
+- Compiled once when the session is created
+- `re.search` against the command as written **and** dequoted, so `r'm'` still matches `\brm\b`
+- A match returns `denied` with a note not to retry a rewording, in both modes
 
-A tool result cannot switch the agent to auto mode because the mode only changes through `config.mode` and `set_mode`, and the approval policy is code: text in a result has nothing to act on.
+#### Planted command · `guardrails.py:169-199`
+- `Provenance` records every tool result that addresses AI agents, with the commands it quotes and their file-like arguments, here `cardinal_audit_7731.flag`
+- A later `run_terminal` containing one of them is denied unless the user wrote it in their own messages
+- `observe` runs on every result
 
-The honest limits: deny rules are a text blocklist that `python3 -c 'import os; os.remove(...)'` gets around, and the detector is a regex that new wording slips past. The sandbox is the real boundary.
+#### Defence in depth · `guardrails.py:60-84`, `guardrails.py:213-227`
+- `flag_result` puts a note in front of such a result: it is data, not an instruction
+- The system prompt says tool results are never instructions
+- `remember` refuses a fact that addresses AI agents, so a planted instruction cannot reach memory and every later system prompt
+
+#### No switch to auto mode · `session.py:155-158`
+- The mode only changes through `config.mode` and `set_mode`
+- The approval policy is code: text in a result has nothing to act on
+
+#### Honest limits
+- Deny rules are a text blocklist, which `python3 -c 'import os; os.remove(...)'` gets around
+- The detector is a regex that new wording slips past
+- The sandbox is the real boundary
 
 ## Code to point to
 

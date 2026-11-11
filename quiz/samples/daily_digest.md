@@ -8,13 +8,33 @@
 
 ## Answer
 
-Before the final call everything is code. `classify_all` runs P1's `classify_priority` on every email at once, with a thread pool of 16 workers, and keeps the results in input order; `unknown` counts as normal. `aggregate` drops the ignore emails before grouping, so nothing from the ignore pile reaches the final prompt; I never ask the model to skip it. The rest are grouped by `thread_id` (or the email id when there is none), a thread is urgent if any of its emails is, and urgent threads come first.
+**Short answer:** everything before the final call is code: classify every email in parallel, drop ignore, group by thread, urgent first. One LM call writes the digest, with one shorter rewrite if it runs long.
 
-The final call sees `format_items`: each thread's first email and its last two, bodies cut to 800 characters for urgent and 300 for normal, and the classifier's reason as "Why it was flagged". The system prompt fixes the layout (Urgent:, Also today:) and makes every urgent line name the company, project or site exactly as the email spells it, because that is what the test looks for.
+#### Classify · `daily_digest.py:47-60`
+- `classify_all` runs P1's `classify_priority` on every email at once, **16 workers**, results kept in input order
+- `unknown` counts as normal
 
-For length I ask for 250 words, 300 minus a margin of 50, since the model's own count is approximate. If the digest still comes back over 300, there is one retry in which the model rewrites its own digest shorter, and I keep the rewrite only if it is shorter. I never truncate: the test checks the text the model wrote, and a cut could drop an urgent name.
+#### Aggregate · `daily_digest.py:66-89`
+- Ignore emails dropped **before** grouping: nothing from the ignore pile reaches the final prompt; I never ask the model to skip it
+- Grouped by `thread_id` (the email id when there is none)
+- A thread is urgent if any of its emails is; urgent threads first
 
-Edge cases: no email gives "No email today.", only ignore mail gives "Nothing needs your attention today.", and an empty reply falls back to a digest built in code from the urgent subjects. In Part 2 the same pipeline is the `daily_digest` tool, run on `aux_lm`.
+#### What the final call sees · `daily_digest.py:97-117`
+- `format_items`: each thread's first email and its last two
+- Bodies cut to **800 chars** for urgent, **300** for normal
+- The classifier's reason, as "Why it was flagged"
+- System prompt fixes the layout (Urgent:, Also today:) and makes every urgent line name the company, project or site exactly as the email spells it: that is what the test looks for
+
+#### Length · `daily_digest.py:141-168`
+- Ask for **250 words**: the 300 limit minus a 50 margin, since the model's own count is approximate
+- Still over 300 → one retry where the model rewrites its own digest shorter, kept only if it is shorter
+- Never truncate: the test checks the text the model wrote, and a cut could drop an urgent name
+
+#### Edge cases
+- No email → "No email today."
+- Only ignore mail → "Nothing needs your attention today."
+- Empty reply → a digest built in code from the urgent subjects
+- Part 2: the same pipeline is the `daily_digest` tool, on `aux_lm` (`toolset.py:219-223`)
 
 ## Code to point to
 

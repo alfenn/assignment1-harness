@@ -8,15 +8,33 @@
 
 ## Answer
 
-Memory is one JSON file, `memory.json` in the memory_dir, holding a list of facts, each with an id, the fact and the date saved. Writes are atomic, a temp file and `os.replace`, under a lock, and an unreadable file is moved aside, not overwritten.
+**Short answer:** one JSON file of dated facts. The newest facts that fit go straight into a new session's system prompt, the rest through BM25 `recall`, and the harness saves on its own when the model does not.
 
-A new session starts with the prompt block in its system prompt: guidance on what is worth saving, then the newest facts that fit in context_budget // 16 tokens, listed oldest first with their ids and dates, and a line saying how many older facts `recall` can find. So a small store is loaded whole; recall is not the only way a fact reaches a new session.
+#### Store · `memory.py:57-91`
+- One JSON file, `memory.json` in the memory_dir: a list of facts, each with an id, the fact and the date saved
+- Atomic writes (a temp file and `os.replace`) under a lock
+- An unreadable file is moved aside, not overwritten
 
-The agent stores facts with `remember`, which ignores exact duplicates, never overwrites, and lists related facts so the model sees conflicts; the newer fact, the higher m- number, wins. `recall` ranks facts with my P3 BM25 over normalized words and lists the newest when nothing matches.
+#### A new session · `memory.py:273-295`, `session.py:149-150`
+- A prompt block in its system prompt: guidance on what is worth saving
+- Then the newest facts that fit in `context_budget // 16` tokens, listed oldest first with their ids and dates
+- A line saying how many older facts `recall` can find
+- So a small store is loaded whole; recall is not the only way a fact reaches a new session
 
-The harness also writes on its own: if a message asks to keep something and the model makes no `remember` call, it is nudged; if it still saves nothing, the harness saves the user's own words, and after that a correction is saved the same way. Facts addressed to AI agents are refused, because a planted instruction in memory would reach every later session's system prompt.
+#### Tools · `memory.py:221-269`
+- `remember` ignores exact duplicates, never overwrites, and lists related facts so the model sees conflicts
+- The newer fact, the higher m- number, wins
+- `recall` ranks facts with my P3 BM25 over normalized words; lists the newest when nothing matches
 
-After my final run, 17 of 20 stores were empty, which is right for ordinary questions. Saved: the user is on the Platform team and "the spec" means the GridLens API spec; the user is on Customer Success in Rotterdam; and employee number 30918, then the corrected 31908. Missing: doc-office-days, where the user said they are a new hybrid employee in the Oakland office. Saving that was left to the model's judgment, and it did not save it.
+#### The harness saves too · `memory.py:95-143`, `session.py:293-321`
+- A message asks to keep something and the model makes no `remember` call → nudged
+- Still nothing saved → the harness saves the user's own words; after that, a correction is saved the same way
+- Facts addressed to AI agents are refused (`guardrails.py:220-227`): a planted instruction in memory would reach every later session's system prompt
+
+#### Final run · `runs/sim-20261024-203750/`
+- **17 of 20** stores empty: right for ordinary questions
+- Saved: the user is on the Platform team and "the spec" means the GridLens API spec; the user is on Customer Success in Rotterdam; employee number 30918, then the corrected 31908
+- Missing: doc-office-days, where the user said they are a new hybrid employee in the Oakland office; saving that was left to the model's judgment, and it did not save it
 
 ## Code to point to
 

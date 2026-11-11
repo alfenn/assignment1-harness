@@ -8,13 +8,28 @@
 
 ## Answer
 
-`run_priority` makes one LM call per email, in `classify_priority`. The system prompt embeds the whole `data/priority_rubric.md`, read once at import, and asks for exactly two lines: `LABEL:` urgent, normal or ignore, and `REASON:` one sentence. I show the email with From, To, Date, Subject and body, and I rewrite the date with its weekday, so the model can count working days the way the rubric asks. My code never computes deadlines.
+**Short answer:** one LM call per email with the rubric word for word in the prompt, a strict two-line reply, a lenient parser, and `unknown` when there is no label.
 
-`parse_priority` reads the strict `LABEL:` line first. If it is missing, it takes the last label word anywhere in the reply, case-insensitive, because a model that ignores the format usually reasons first and states its conclusion last. If no label word appears at all, I return `unknown`, as the tests require, rather than guess. The reason comes from the `REASON:` line, otherwise a fixed placeholder, so it is never empty.
+#### Prompt · `priority.py:12-42`
+- One call per email, in `classify_priority`
+- System prompt embeds all of `data/priority_rubric.md`, read once at import
+- Asks for exactly two lines: `LABEL:` urgent / normal / ignore, and `REASON:` one sentence
+- Email shown with From, To, Date, Subject and body
+- Date rewritten with its weekday, so the model can count working days; my code never computes deadlines
 
-If the reply is cut off, I catch `OutputTruncated` and parse its partial text, so a reply that already gave its label still counts. `BudgetExceeded`, a missing key or a network error propagate on purpose: those are setup problems, not model output.
+#### Parsing · `priority.py:45-57`
+- Strict `LABEL:` line first
+- Fallback: the last label word anywhere, case-insensitive (a model that ignores the format reasons first and concludes last)
+- No label word at all → `unknown`, as the tests require; never guess
+- Reason from the `REASON:` line, else a fixed placeholder, so never empty
 
-Why the rubric word for word: grading uses 60 held-out emails labelled under the same rubric, so a prompt tuned to the public labels would not carry over. The weakness I know about: with the fallback, a free-form reply ending in "not urgent" parses as urgent. The strict `LABEL:` line is what prevents that in practice.
+#### Errors · `priority.py:60-72`
+- `OutputTruncated` caught → parse its partial text, so a label already given still counts
+- `BudgetExceeded`, a missing key, network errors propagate on purpose: setup problems, not model output
+
+#### Why, and the weakness
+- Rubric word for word: grading uses **60 held-out emails** labelled under the same rubric, so a prompt tuned to the public labels would not carry over
+- Known weakness: through the fallback, a free-form reply ending in "not urgent" parses as urgent; the strict `LABEL:` line prevents that in practice
 
 ## Code to point to
 

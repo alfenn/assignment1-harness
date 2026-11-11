@@ -8,13 +8,33 @@
 
 ## Answer
 
-`ToolRegistry` keeps tools in a dict in registration order and compiles one `Draft202012Validator` per tool when it is registered, so each call only runs the check. `schemas()` returns exactly name, description and parameters: all the model ever sees of a tool, and what `render_tools` formats.
+**Short answer:** registering compiles a validator once; validate never runs the tool and never raises, and reports every error so the model can fix them in one retry; execute turns any exception into `tool_error`.
 
-`validate` never calls the tool and never raises. For an unknown tool, the result lists the available tools. If the arguments are not an object, it says so. Otherwise it reports every schema error, sorted by path, with where it is and the message, so the model can fix them all in one retry; even a broken schema comes back as `invalid_args`. `execute` validates first, then runs `fn(**args)`. Success is `ok` with str() of the return value, and any exception becomes `tool_error` with the exception's type and message, so nothing escapes into the loop.
+#### Register and schemas · `registry.py:19-33`
+- Tools kept in a dict, in registration order
+- One `Draft202012Validator` compiled per tool at registration, so each call only runs the check
+- `schemas()` returns exactly name, description, parameters: all the model ever sees of a tool, and what `render_tools` formats
 
-Validate is separate because the session calls it before the guard and before approval. A bad call is a malformed reply: it never reaches the user for approval and never runs. `unknown_tool` and `invalid_args` count toward the malformed limit; `tool_error` does not, because the call was well formed and the tool failed.
+#### validate · `registry.py:35-59`
+- Never calls the tool, never raises
+- Unknown tool → the result lists the available tools
+- Arguments not an object → says so
+- Otherwise **every** schema error, sorted by path, with where and the message, so the model fixes them all in one retry
+- Even a broken schema comes back as `invalid_args`
 
-`denied` never comes from the registry: the session writes it, because a denied call is never executed. Later problems rely on raise-to-tool_error: the terminal raises for a non-zero exit, and `read_doc` for an unknown doc_id.
+#### execute · `registry.py:61-69`
+- Validates first, then runs `fn(**args)`
+- Success → `ok` with str() of the return value
+- Any exception → `tool_error` with its type and message; nothing escapes into the loop
+
+#### Why validate is separate · `session.py:251-260`
+- The session calls it before the guard and before approval
+- A bad call is a malformed reply: never reaches the user for approval, never runs
+- `unknown_tool` and `invalid_args` count toward the malformed limit; `tool_error` does not, because the call was well formed and the tool failed (`session.py:80`)
+
+#### Not from the registry
+- `denied` is written by the session, because a denied call is never executed
+- Later problems rely on raise-to-`tool_error`: the terminal raises on a non-zero exit, `read_doc` on an unknown doc_id
 
 ## Code to point to
 

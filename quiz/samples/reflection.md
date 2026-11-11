@@ -8,13 +8,33 @@
 
 ## Answer
 
-The most common failure was the model announcing a step and stopping, or replying empty. I found it by reading the failed transcripts under `runs/`, by rerunning with a salt (`CS329Z_EVAL_SALT`) to see past the cache and measure the variance, and by probing first replies: of 96 first-turn calls only about 60% were tool calls, and about 11% were empty.
+**Short answer:** the most common failure was announcing a step and stopping, or replying empty. I found it in failed transcripts, salted reruns and first-reply probes, and fixed it with a tool-first prompt, empty-reply retries and a nudge. Using the agent myself turned up problems the tests never did.
 
-What I changed: a tool-first `SYSTEM_INTRO`, which raised first-turn tool calls from about 61% to 73%; empty replies retried unchanged and kept out of the context; and a broader announcement check with a nudge that shows the call format. Smaller fixes came from specific personas: ask with `ask_user`, then give the one answer that applies; "starting with" a year applies to later years; corrections reach memory; clearer injection wording; never write to /tmp. The final run in my notes, `runs/sim-20261024-203750`, scored 20 of 20, and 78 of 80 over four runs on the final code: about one miss per run, three or four above the 16 needed. My latest run, `runs/sim-20261026-185420`, was 20 of 20 again.
+#### How I found it
+- Read the failed transcripts under `runs/`
+- Reran with a salt (`CS329Z_EVAL_SALT`) to see past the cache and measure the variance
+- Probed first replies: of **96** first-turn calls, only about **60%** were tool calls and about **11%** were empty
 
-Using the agent myself taught me things the tests did not. The model wrote three identical calls in one reply, which is why `repeated_call` exists. It searched the docs first for a question only the email archive could answer. The transcript does not record that I approved a command. And the nudges rejected a correct plain question and accepted an unfinished promise.
+#### What I changed · `session.py:120`, `session.py:221-245`
+- A tool-first `SYSTEM_INTRO`: first-turn tool calls up from about **61% to 73%**
+- Empty replies retried unchanged and kept out of the context
+- A broader announcement check, with a nudge that shows the call format
+- Smaller fixes from specific personas: ask with `ask_user`, then give the one answer that applies (`interactive.py:45-56`); "starting with" a year applies to later years; corrections reach memory; clearer injection wording; never write to /tmp
 
-What is still brittle: the regex nudges, prompt sensitivity, and about one conversation per run of variance. The next step I would take is to stop matching phrasings, and instead check whether a reply without a call actually answers the question.
+#### Results
+- Final run in my notes, `runs/sim-20261024-203750/`: **20 of 20**
+- **78 of 80** over four runs on the final code: about one miss per run, three or four above the 16 needed
+- Latest run, `runs/sim-20261026-185420/`: **20 of 20** again
+
+#### What using it myself taught me
+- The model wrote three identical calls in one reply: that is why `repeated_call` exists (`protocol.py:188-204`)
+- It searched the docs first for a question only the email archive could answer
+- The transcript does not record that I approved a command
+- The nudges rejected a correct plain question and accepted an unfinished promise
+
+#### Still brittle, and the next step
+- The regex nudges, prompt sensitivity, and about one conversation per run of variance
+- Next: stop matching phrasings, and instead check whether a reply without a call actually answers the question
 
 ## Code to point to
 

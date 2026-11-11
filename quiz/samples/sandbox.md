@@ -8,11 +8,37 @@
 
 ## Answer
 
-`sandbox.py` has four layers. One, an allowlist on the program name of each simple command, which also rejects paths, assignments, `$(...)`, backticks and here-documents. Two, a scrubbed environment, so no API key, and a PATH made of links to the allowed programs. Three, a timeout that kills the whole process group, and an output cap. Four, on macOS, `sandbox-exec`: no network, no writes outside the workspace, and no reads of my home directory or the repository, so not `.env`.
+**Short answer:** four layers: an allowlist, a scrubbed environment, a timeout with an output cap, and `sandbox-exec` with no network and no writes outside the workspace. python3 can still do a lot, which is acceptable because nothing it reads can leave the machine.
 
-What a command can still do: anything python3 can do within the timeout; use CPU, memory and disk; read files outside the home directory and the repository; change anything in the workspace copy; use allowlisted programs that start others, such as awk's system(), find -exec or xargs; and leave the process group with os.setsid(). The allowlist never checks arguments. That is acceptable here because the coding tasks need python3, and with no network and no writes outside a temporary workspace, nothing a jailed process reads can leave the machine. The harness never starts a process itself: every command goes through `sandbox.run_terminal`.
+#### Four layers · `sandbox.py:1-46`
+1. An allowlist on the program name of each simple command; also rejects paths, assignments, `$(...)`, backticks and here-documents
+2. A scrubbed environment, so no API key, and a PATH made of links to the allowed programs
+3. A timeout that kills the whole process group, and an output cap
+4. On macOS, `sandbox-exec`: no network, no writes outside the workspace, no reads of my home directory or the repository, so not `.env`
 
-The biggest limitation of the harness as a whole: its behaviour fixes are regexes and prompts. The announcement nudges and the injection detector match phrasings, so new wording gets past them, and what the agent does depends on prompt wording. From my own runs: it sometimes searches the wrong corpus first; it gives the generic PTO accrual table instead of saying it cannot see the user's balance; and approvals are not logged or remembered, which I noticed in conversation 3 of my field notes.
+#### What a command can still do
+- Anything python3 can do within the timeout
+- Use CPU, memory and disk
+- Read files outside the home directory and the repository
+- Change anything in the workspace copy
+- Use allowlisted programs that start others: awk's system(), find -exec, xargs
+- Leave the process group with os.setsid()
+- The allowlist never checks arguments
+
+#### Why that is acceptable
+- The coding tasks need python3
+- No network and no writes outside a temporary workspace, so nothing a jailed process reads can leave the machine
+- The harness never starts a process itself: every command goes through `sandbox.run_terminal` (`terminal.py:150`)
+
+#### Biggest limitation of the harness · `session.py:87-118`, `guardrails.py:60-69`
+- Its behaviour fixes are regexes and prompts
+- The announcement nudges and the injection detector match phrasings, so new wording gets past them
+- What the agent does depends on prompt wording
+
+#### From my own runs
+- It sometimes searches the wrong corpus first
+- It gives the generic PTO accrual table instead of saying it cannot see the user's balance
+- Approvals are not logged or remembered (conversation 3 of my field notes)
 
 ## Code to point to
 
