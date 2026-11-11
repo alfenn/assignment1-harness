@@ -132,6 +132,9 @@ details.context[open] summary { border-bottom: 1px solid var(--line); }
 .ctx-refs { display: flex; flex-wrap: wrap; gap: 1px 12px; margin-top: 2px; font-size: 12.5px; color: var(--muted); }
 .ctx-refs span { min-width: 0; overflow-wrap: anywhere; }
 .ctx-refs code { font-size: 11.5px; }
+a.ref { text-decoration: none; }
+a.ref:hover { text-decoration: underline; }
+a.ref code { color: var(--accent); }
 .field { display: grid; gap: 6px; }
 .field label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
 .field label .aux { text-transform: none; letter-spacing: 0; font-weight: 400; font-family: var(--f-mono); }
@@ -290,13 +293,65 @@ function modeLabel(mode) { return { quick: "Quick round", retake: "Retake", cust
 function pagesLabel(p) { return p.length > 1 ? `pp. ${p[0]}–${p[1]}` : `p. ${p[0]}`; }
 function handoutHref(page, report) { return `${report ? "../../" + HANDOUT : "/handout.pdf"}#page=${page}`; }
 function contextSummary(q) { const s = q.context.sources[0]; return `${s.label.split(":")[0]} · ${pagesLabel(s.pages)}`; }
+// Code references: "path", "path:12" or "path:12-30", where path is a file or a
+// folder ("data/docs/") in the repository; a bare name such as session.py stands
+// for the one file it names. Only paths that exist get a link. In the app a link
+// opens the server's code viewer (code.html); reportLinks() points the links of a
+// saved report at your editor instead, since the report is a file in quiz/quizN/.
+const REF_TOKEN = /^((?:[\w.-]+\/)*[\w.-]+\.(?:py|md|toml|json|jsonl|txt|ya?ml|cfg|ini|lock|pdf)|(?:[\w.-]+\/)+)(?::(\d+)(?:-(\d+))?)?$/;
+const BARE_REF = /(^|[\s(\[,;])((?:[\w.-]+\/)+[\w.-]+\.[a-z]+(?::\d+(?:-\d+)?)?)(?=$|[\s)\],;.:!?&])/g;
+let FILES = new Set(), DIRS = new Set();
+function setFiles(files) {
+  FILES = new Set(files);
+  DIRS = new Set(files.flatMap(f => { const parts = f.split("/"); return parts.slice(1).map((_, i) => parts.slice(0, i + 1).join("/") + "/"); }));
+}
+function leadingRef(s) { return String(s).match(/^\s*([\w./-]+(?::\d+(?:-\d+)?)?)/)?.[1] || ""; }
+function parseRef(at) {
+  const m = String(at).match(REF_TOKEN); if (!m) return null;
+  const pool = m[1].endsWith("/") ? DIRS : FILES;
+  let path = pool.has(m[1]) ? m[1] : null;
+  if (!path) { const hits = [...pool].filter(p => ("/" + p).endsWith("/" + m[1])); if (hits.length === 1) path = hits[0]; }
+  return path && { path, a: m[2], b: m[3] };
+}
+function codeHref(r, target = "app") {
+  const p = encodeURI(r.path);
+  if (target === "md") return `../../${p}${r.a ? `#L${r.a}${r.b ? "-L" + r.b : ""}` : ""}`;
+  if (target === "report") return /(\/|\.pdf)$/i.test(r.path) || !INFO?.editor ? `../../${p}`
+    : `${INFO.editor}://file${encodeURI(INFO.repo + "/" + r.path)}${r.a ? ":" + r.a : ""}`;
+  if (/\.pdf$/i.test(r.path)) return `/raw/${p}`;
+  return `/code/${p}${r.a ? `?lines=${r.a}${r.b ? "-" + r.b : ""}#L${r.a}` : ""}`;
+}
+function refLink(at, inner = `<code>${esc(at)}</code>`) {
+  const r = parseRef(at); if (!r) return inner;
+  const ref = r.path + (r.a ? `:${r.a}${r.b ? "-" + r.b : ""}` : "");
+  return `<a class="ref" data-ref="${esc(ref)}" href="${esc(codeHref(r))}" target="_blank" rel="noopener" title="${esc(ref)}">${inner}</a>`;
+}
+function reportLinks(html) {
+  return html.replace(/<a class="ref" data-ref="([^"]*)"[^>]*>/g, (_, ref) => {
+    const href = codeHref(parseRef(ref), "report");
+    return `<a class="ref" href="${esc(href)}"${href.startsWith("../") ? ' target="_blank" rel="noopener"' : ""}>`;
+  });
+}
+// The code a student pointed to, one reference per line, each linked when it names a file.
+function refsBlock(text) {
+  return `<pre><code>${String(text).split("\n").map(l => {
+    const at = leadingRef(l), i = l.indexOf(at);
+    return at ? esc(l.slice(0, i)) + refLink(at, esc(at)) + esc(l.slice(i + at.length)) : esc(l);
+  }).join("\n")}</code></pre>`;
+}
+
 // A context item is {text, refs}; a ref is "path:lines label" (lines optional).
 function splitRef(r) { const m = String(r).match(/^(\S+)\s*(.*)$/); return m ? [m[1], m[2]] : [String(r), ""]; }
 function refsHTML(refs) {
   if (!refs?.length) return "";
-  return `<div class="ctx-refs">${refs.map(r => { const [at, label] = splitRef(r); return `<span><code>${esc(at)}</code>${label ? " " + esc(label) : ""}</span>`; }).join("")}</div>`;
+  return `<div class="ctx-refs">${refs.map(r => { const [at, label] = splitRef(r); return `<span>${refLink(at)}${label ? " " + esc(label) : ""}</span>`; }).join("")}</div>`;
 }
-function refsMD(refs) { return (refs || []).map(r => { const [at, label] = splitRef(r); return `\`${at}\`${label ? " " + label : ""}`; }).join(" · "); }
+function refsMD(refs) {
+  return (refs || []).map(r => {
+    const [at, label] = splitRef(r), p = parseRef(at);
+    return `${p ? `[\`${at}\`](${codeHref(p, "md")})` : `\`${at}\``}${label ? " " + label : ""}`;
+  }).join(" · ");
+}
 function contextHTML(q, report = false) {
   const c = q.context; if (!c) return "";
   const list = xs => `<ul>${xs.map(x => `<li>${inline(x.text)}${refsHTML(x.refs)}</li>`).join("")}</ul>`;
@@ -309,11 +364,12 @@ function contextHTML(q, report = false) {
   </div></details>`;
 }
 
-// Inline markdown: code spans, bold, italics. Everything is escaped first.
+// Inline markdown: code spans, bold, italics. Everything is escaped first. Code
+// spans and bare paths that name a file in the repository become links.
 function inline(s) {
   return String(s ?? "").split(/(`[^`]+`)/g).map(part => {
-    if (/^`[^`]+`$/.test(part)) return `<code>${esc(part.slice(1, -1))}</code>`;
-    return esc(part).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+    if (/^`[^`]+`$/.test(part)) { const c = part.slice(1, -1); return refLink(leadingRef(c), `<code>${esc(c)}</code>`); }
+    return esc(part).replace(BARE_REF, (_, pre, at) => pre + refLink(at, at)).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
   }).join("");
 }
 function md(src) {
@@ -636,13 +692,13 @@ function reportHTML() {
     const body = subs.length ? subs.map((s, k) => `
       <h3>${subs.length > 1 ? `Try ${k + 1}` : "Your answer"}${s.seconds ? ` · ${fmtSecs(s.seconds)}` : ""}</h3>
       <blockquote class="answer md">${md(s.answer)}</blockquote>
-      ${s.refs ? `<pre><code>${esc(s.refs)}</code></pre>` : ""}
+      ${s.refs ? refsBlock(s.refs) : ""}
       ${gradeHTML(s, { openModel: true })}
       ${threadLogHTML(s.thread)}`).join("")
       : (it.answer ? `<p class="note">Draft, not submitted:</p><blockquote class="answer md">${md(it.answer)}</blockquote>` : `<p class="note">Not answered.</p>`);
     return `<section class="report-q" id="q-${id}"><div class="eyebrow">Question ${i + 1} · ${esc(q.tag)}</div><h2>${esc(q.title)}</h2><div class="ask"><p>${esc(q.prompt)}</p></div>${contextHTML(q, true)}${body}</section>`;
   }).join("");
-  return `<!doctype html>
+  return reportLinks(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Oral quiz practice · ${esc(fmtDate(a.startedAt))}</title>
 ${FONT_LINK}
@@ -652,7 +708,7 @@ ${FONT_LINK}
 <div class="score-row ${avg ? scoreClass(Math.round(avg)) : "s0"}"><div class="big">${avg ? avg.toFixed(1) : "–"}<small>/5 average</small></div></div>
 <div class="tbl-wrap"><table><thead><tr><th>#</th><th>Question</th><th>Score</th><th>Verdict</th></tr></thead><tbody>${rows}</tbody></table></div>
 ${sections}
-</main></div></body></html>`;
+</main></div></body></html>`);
 }
 
 async function saveToQuiz(btn) {
@@ -848,7 +904,7 @@ function gradeHTML(sub, opts = {}) {
       </div>
       <div class="cols">${list("What was right", g.strengths)}${list("Gaps", g.gaps)}</div>
       ${g.code_check.length ? `<div class="block"><h3>Code reference check</h3><div class="tbl-wrap"><table><thead><tr><th>You cited</th><th>Check</th><th>What is there</th></tr></thead><tbody>
-        ${g.code_check.map(c => `<tr><td class="mono"><code>${esc(c.cited)}</code></td><td><span class="st ${c.status}">${c.status}</span></td><td>${inline(c.note)}</td></tr>`).join("")}
+        ${g.code_check.map(c => `<tr><td class="mono">${refLink(leadingRef(c.cited), `<code>${esc(c.cited)}</code>`)}</td><td><span class="st ${c.status}">${c.status}</span></td><td>${inline(c.note)}</td></tr>`).join("")}
       </tbody></table></div></div>` : ""}
       <div class="cols">${list("Code to point to", g.missing_refs)}${list("To improve", g.suggestions)}</div>
       ${g.model_answer ? `<details class="model" ${opts.openModel ? "open" : ""}><summary>Show a 5/5 answer</summary><div class="md">${md(g.model_answer)}</div></details>` : ""}
@@ -876,7 +932,7 @@ function renderGradeArea(qid) {
     if (subs.length > 1) {
       html += `<details class="history"><summary>Earlier tries (${subs.length - 1})</summary>${subs.slice(0, -1).map((s, k) => `<details class="past" id="try-${qid}-${k}">
         <summary><span class="chip ${scoreClass(s.grade.score)}">${s.grade.score}/5</span> Try ${k + 1} · ${esc(fmtDate(s.at))}${s.thread?.length ? ` · ${s.thread.length} follow-up messages` : ""} · ${inline(s.grade.verdict)}</summary>
-        <div><blockquote class="answer md">${md(s.answer)}</blockquote>${s.refs ? `<pre><code>${esc(s.refs)}</code></pre>` : ""}${gradeHTML(s)}${threadLogHTML(s.thread)}</div>
+        <div><blockquote class="answer md">${md(s.answer)}</blockquote>${s.refs ? refsBlock(s.refs) : ""}${gradeHTML(s)}${threadLogHTML(s.thread)}</div>
       </details>`).join("")}</details>`;
     }
   } else if (item.lastError && !inflight[qid]) {
@@ -990,6 +1046,7 @@ addEventListener("pagehide", () => {
   try {
     const [bank, info] = await Promise.all([api("/api/questions"), api("/api/info")]);
     QUESTIONS = bank.questions; CHIPS = bank.chips; INFO = info; HANDOUT = bank.handout || HANDOUT;
+    setFiles(info.files || []);
     QBY = Object.fromEntries(QUESTIONS.map(q => [q.id, q]));
     setPill("pill-grader", "ok", `Grader: Claude Code · ${info.model} · repo at ${info.head}${info.package_changed ? "+changes" : ""}`);
     setSync("ok");

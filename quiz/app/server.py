@@ -17,6 +17,11 @@ has what it read.
 The question bank (``questions.json``) is reread whenever it changes, so edits to
 it show up on the next page load without restarting the server.
 
+Code references on the page open ``/code/<path>?lines=a-b`` (``code.html``), which
+shows the file as it is in the working tree with those lines marked, and links
+to the same place in your editor (``--editor``). It serves only what git tracks
+or would track, so ignored files such as ``.env`` are never shown.
+
 Attempts in progress are kept in ``quiz/.attempts/<id>.json``. "Save to quiz/"
 writes ``quiz/quizN/`` (the lowest-numbered empty one, else the next number) with
 ``quiz.md`` (the transcript), ``quiz.json`` (all data, rubric included) and
@@ -39,6 +44,7 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.parse
 import uuid
 import webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -124,6 +130,71 @@ def rel(path: Optional[str]) -> str:
         return str(Path(path).resolve().relative_to(REPO))
     except ValueError:
         return str(path)
+
+
+def repo_files() -> list[str]:
+    """The files the code viewer may show: what git tracks or would track.
+
+    Ignored files (.env, .venv, quiz/.attempts, data/raw) never appear, and
+    nothing outside the repository can, so this list is the whole allowlist.
+    """
+    out = git("ls-files", "-z", "--cached", "--others", "--exclude-standard")
+    root = REPO.resolve()
+    return sorted(
+        f for f in out.split("\0")
+        if f and Path(f).name != ".env" and (REPO / f).is_file() and (REPO / f).resolve().is_relative_to(root)
+    )
+
+
+def find_code(want: str) -> dict:
+    """Resolve the path of a code reference for the viewer.
+
+    A file or directory is matched exactly; failing that, a bare or partial path
+    such as ``session.py`` or ``agent/`` matches the one entry that ends with it.
+    """
+    files = repo_files()
+    while want.startswith("./"):
+        want = want[2:]
+    clean = want.strip("/")
+    if clean in files:
+        return {"kind": "file", "path": clean}
+    dirs = {str(p) + "/" for f in files for p in Path(f).parents if str(p) != "."}
+    if not clean or clean + "/" in dirs:
+        prefix = clean + "/" if clean else ""
+        entries = {f[len(prefix):].split("/")[0] + ("/" if "/" in f[len(prefix):] else "") for f in files if f.startswith(prefix)}
+        return {"kind": "dir", "path": prefix, "entries": sorted(entries, key=lambda e: (not e.endswith("/"), e))}
+    suffix = "/" + clean
+    matches = sorted(f for f in files if ("/" + f).endswith(suffix)) or sorted(d for d in dirs if ("/" + d).endswith(suffix + "/"))
+    if len(matches) == 1:
+        return {**find_code(matches[0]), "resolved_from": want}
+    if matches:
+        return {"kind": "ambiguous", "path": want, "entries": matches}
+    return {"kind": "missing", "path": want}
+
+
+TEXT_LIMIT = 2 * 1024 * 1024
+
+
+def code_payload(want: str) -> dict:
+    found = find_code(want)
+    found.update(repo=str(REPO), editor=CONFIG.get("editor"))
+    if found["kind"] != "file":
+        return found
+    path = REPO / found["path"]
+    if path.suffix.lower() == ".pdf":
+        return {**found, "kind": "pdf"}
+    data = path.read_bytes()
+    head = data[:TEXT_LIMIT]
+    try:
+        if b"\0" in head[:8192]:
+            raise UnicodeDecodeError("utf-8", head, 0, 1, "NUL byte")
+        text = head.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        # A long file cut at TEXT_LIMIT may end inside a character; anything else is binary.
+        if len(data) <= TEXT_LIMIT or exc.start < len(head) - 3:
+            return {**found, "kind": "binary", "size": len(data)}
+        text = head[:exc.start].decode("utf-8")
+    return {**found, "text": text, "size": len(data), "truncated": len(data) > TEXT_LIMIT}
 
 
 _bank: dict = {}
@@ -435,6 +506,16 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             return self._send(200, (APP_DIR / "index.html").read_bytes(), "text/html; charset=utf-8")
+        if path == "/code" or path.startswith("/code/"):
+            return self._send(200, (APP_DIR / "code.html").read_bytes(), "text/html; charset=utf-8")
+        if path == "/api/code":
+            want = urllib.parse.parse_qs(urllib.parse.urlsplit(self.path).query).get("path", [""])[0]
+            return self._json(200, code_payload(want))
+        if path.startswith("/raw/"):
+            found = find_code(urllib.parse.unquote(path[len("/raw/"):]))
+            if found["kind"] != "file" or not found["path"].lower().endswith(".pdf"):
+                return self._json(404, {"error": "only PDFs in the repository are served raw"})
+            return self._send(200, (REPO / found["path"]).read_bytes(), "application/pdf")
         b = bank()
         if path == "/handout.pdf":
             handout = REPO / b["handout"]
@@ -443,7 +524,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._send(200, handout.read_bytes(), "application/pdf")
         if path == "/api/info":
             return self._json(200, {
-                **repo_state(), "rubric_commit": b["rubric_commit"],
+                **repo_state(), "rubric_commit": b["rubric_commit"], "repo": str(REPO), "editor": CONFIG.get("editor"), "files": repo_files(),
                 "model": CONFIG.get("model") or "your Claude Code default", "claude": CONFIG["claude_version"],
             })
         if path == "/api/questions":
@@ -649,6 +730,9 @@ def main() -> None:
     ap.add_argument("--effort", choices=["low", "medium", "high", "xhigh", "max"], help="grader effort level")
     ap.add_argument("--budget", type=float, default=1.0, help="most US dollars one grading or follow-up call may spend (default 1.0)")
     ap.add_argument("--claude", default=shutil.which("claude"), help="path to the claude CLI")
+    ap.add_argument("--editor", choices=["cursor", "vscode", "windsurf", "none"],
+                    default="cursor" if shutil.which("cursor") else "vscode" if shutil.which("code") else "none",
+                    help="editor that code links open in (default: cursor or vscode, whichever is installed)")
     ap.add_argument("--no-open", action="store_true", help="do not open the browser")
     ap.add_argument("--verbose", action="store_true", help="log every request")
     args = ap.parse_args()
@@ -659,7 +743,8 @@ def main() -> None:
     except (OSError, subprocess.SubprocessError) as exc:
         sys.exit(f"Could not run {args.claude}: {exc}")
     CONFIG.update(port=args.port, model=args.model, effort=args.effort, budget=args.budget,
-                  claude=args.claude, claude_version=version, verbose=args.verbose)
+                  claude=args.claude, claude_version=version, verbose=args.verbose,
+                  editor=None if args.editor == "none" else args.editor)
     ensure_attempts_dir()
     bank()
     try:

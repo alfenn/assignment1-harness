@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Code</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* The code viewer for the oral-quiz page: one file from the working tree, the cited lines marked. Same tokens as index.html. */
+:root {
+  --bg: #f5f4f5;
+  --surface: #ffffff;
+  --sunken: #efedee;
+  --fg: #1c191b;
+  --muted: #665e63;
+  --line: #dcd6d9;
+  --accent: #8c1515;
+  --accent-ink: #ffffff;
+  --accent-soft: #f6e8e8;
+  --code: #f0ecee;
+  --f-display: "IBM Plex Sans Condensed", "Arial Narrow", system-ui, sans-serif;
+  --f-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  --r: 6px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141113; --surface: #1c181b; --sunken: #231e21; --fg: #ece7ea; --muted: #a69da2; --line: #362f33;
+    --accent: #e2676d; --accent-ink: #1a0d0e; --accent-soft: #3a2124; --code: #241f22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141113; --surface: #1c181b; --sunken: #231e21; --fg: #ece7ea; --muted: #a69da2; --line: #362f33;
+  --accent: #e2676d; --accent-ink: #1a0d0e; --accent-soft: #3a2124; --code: #241f22;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-body); }
+a { color: var(--accent); }
+code { font-family: var(--f-mono); font-size: 0.86em; background: var(--code); padding: 0.08em 0.35em; border-radius: 4px; overflow-wrap: anywhere; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.shell { max-width: 1180px; margin: 0 auto; padding: 0 max(16px, env(safe-area-inset-left, 0px)) 40px; }
+header {
+  position: sticky; top: 0; z-index: 2; background: var(--bg);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 14px 0 12px; border-bottom: 1px solid var(--line);
+}
+.crumbs { flex: 1 1 320px; min-width: 0; font: 500 14px/1.4 var(--f-mono); overflow-wrap: anywhere; }
+.crumbs a { text-decoration: none; }
+.crumbs a:hover { text-decoration: underline; }
+.crumbs .sep { color: var(--muted); margin: 0 1px; }
+.crumbs .lines { color: var(--accent); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.btn {
+  display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: var(--r);
+  border: 1px solid var(--line); background: var(--surface); font-size: 13.5px; font-weight: 500; text-decoration: none; color: var(--fg); cursor: pointer;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.note { color: var(--muted); font-size: 13.5px; margin: 12px 0 0; }
+
+.code {
+  margin-top: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
+  overflow-x: auto; font: 13px/1.6 var(--f-mono); tab-size: 4;
+}
+.code table { border-collapse: collapse; min-width: 100%; }
+.code td { padding: 0; vertical-align: top; }
+.code td.n {
+  position: sticky; left: 0; background: var(--sunken); color: var(--muted); text-align: right; user-select: none;
+  padding: 0 10px 0 14px; border-right: 1px solid var(--line); min-width: 4.2em;
+}
+.code td.n a { color: inherit; text-decoration: none; display: block; }
+.code td.t { white-space: pre; padding: 0 16px 0 12px; }
+.code tr:first-child td { padding-top: 8px; }
+.code tr:last-child td { padding-bottom: 8px; }
+.code tr.hl td.t { background: var(--accent-soft); }
+.code tr.hl td.n { background: var(--accent-soft); color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); }
+.code tr:target td.n { font-weight: 600; }
+
+.listing { margin: 14px 0 0; padding: 0; list-style: none; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.listing li { border-top: 1px solid var(--line); }
+.listing li:first-child { border-top: 0; }
+.listing a { display: block; padding: 7px 14px; font: 13.5px/1.4 var(--f-mono); text-decoration: none; overflow-wrap: anywhere; }
+.listing a:hover { background: var(--sunken); }
+.empty { margin-top: 24px; }
+.empty h1 { font: 600 22px/1.3 var(--f-display); margin: 0 0 6px; }
+</style>
+</head>
+<body>
+<div class="shell" id="app"><p class="note">Loading…</p></div>
+<script>
+const EDITORS = { cursor: "Cursor", vscode: "VS Code", windsurf: "Windsurf" };
+const app = document.getElementById("app");
+const want = decodeURIComponent(location.pathname.replace(/^\/code\/?/, ""));
+let range = parseRange(new URLSearchParams(location.search).get("lines"));
+let data = null;
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
+function parseRange(s) {
+  const m = String(s || "").match(/^(\d+)(?:-(\d+))?$/);
+  if (!m) return null;
+  const a = +m[1], b = +(m[2] || m[1]);
+  return [Math.min(a, b), Math.max(a, b)];
+}
+function rangeLabel(r) { return r ? (r[0] === r[1] ? `${r[0]}` : `${r[0]}-${r[1]}`) : ""; }
+function viewHref(path, r) { return `/code/${encodeURI(path)}${r ? `?lines=${rangeLabel(r)}#L${r[0]}` : ""}`; }
+function editorHref(line) { return `${data.editor}://file${encodeURI(data.repo + "/" + data.path)}${line ? ":" + line : ""}`; }
+function reference() { return data.path + (range ? ":" + rangeLabel(range) : ""); }
+
+function crumbs(path) {
+  const parts = path.replace(/\/$/, "").split("/").filter(Boolean);
+  const isDir = path.endsWith("/") || !path;
+  let acc = "";
+  const links = [`<a href="/code/">${esc(data.repo.split("/").pop())}</a>`];
+  parts.forEach((p, i) => {
+    acc += p + (i < parts.length - 1 || isDir ? "/" : "");
+    links.push(i === parts.length - 1 && !isDir ? `<span>${esc(p)}</span>` : `<a href="/code/${encodeURI(acc)}">${esc(p)}</a>`);
+  });
+  return links.join('<span class="sep">/</span>');
+}
+
+function header() {
+  const editor = data.kind === "file" && EDITORS[data.editor]
+    ? `<a class="btn primary" id="open-editor" href="${esc(editorHref(range?.[0]))}">Open in ${EDITORS[data.editor]}</a>` : "";
+  const copy = data.kind === "file" ? `<button class="btn" id="copy-ref" type="button">Copy <code>${esc(reference())}</code></button>` : "";
+  return `<header><div class="crumbs">${crumbs(data.path)}${data.kind === "file" && range ? `<span class="lines">:${rangeLabel(range)}</span>` : ""}</div><div class="actions">${editor}${copy}</div></header>`;
+}
+
+function renderFile() {
+  const lines = data.text.replace(/\r\n?/g, "\n").replace(/\n$/, "").split("\n");
+  if (range && range[0] > lines.length) range = null;
+  const rows = lines.map((l, i) => {
+    const n = i + 1, on = range && n >= range[0] && n <= range[1];
+    return `<tr id="L${n}"${on ? ' class="hl"' : ""}><td class="n"><a href="#L${n}" data-n="${n}">${n}</a></td><td class="t">${esc(l) || " "}</td></tr>`;
+  }).join("");
+  const notes = [
+    data.resolved_from ? `<code>${esc(data.resolved_from)}</code> is <code>${esc(data.path)}</code>.` : "",
+    data.truncated ? `Showing the first 2 MB of ${Math.round(data.size / 1048576)} MB.` : "",
+    "Click a line number to mark it, shift-click to mark a range.",
+  ].filter(Boolean);
+  app.innerHTML = `${header()}<p class="note">${notes.join(" ")}</p><div class="code"><table>${rows}</table></div>`;
+  document.title = `${data.path.split("/").pop()}${range ? ":" + rangeLabel(range) : ""} · ${data.path}`;
+  app.querySelector(".code").addEventListener("click", e => {
+    const a = e.target.closest("a[data-n]"); if (!a) return;
+    e.preventDefault();
+    const n = +a.dataset.n;
+    range = e.shiftKey && range ? [Math.min(range[0], n), Math.max(range[1], n)] : [n, n];
+    history.replaceState(null, "", viewHref(data.path, range));
+    renderFile();
+  });
+  document.getElementById("copy-ref").addEventListener("click", async e => {
+    const btn = e.currentTarget;
+    try { await navigator.clipboard.writeText(reference()); btn.firstChild.textContent = "Copied "; }
+    catch { btn.firstChild.textContent = "Select and copy "; }
+    setTimeout(() => { btn.firstChild.textContent = "Copy "; }, 1600);
+  });
+  const first = range && document.getElementById(`L${range[0]}`);
+  if (first) requestAnimationFrame(() => first.scrollIntoView({ block: range[1] - range[0] > 25 ? "start" : "center" }));
+}
+
+function renderList(title, entries, base) {
+  const items = entries.map(e => `<li><a href="${esc(viewHref(base + e))}">${esc(e)}</a></li>`).join("");
+  app.innerHTML = `${header()}${title ? `<p class="note">${title}</p>` : ""}<ul class="listing">${items || '<li><a>(empty)</a></li>'}</ul>`;
+  document.title = `${data.path || data.repo.split("/").pop() + "/"} · Code`;
+}
+
+function renderEmpty(title, body) {
+  app.innerHTML = `${header()}<div class="empty"><h1>${title}</h1><p class="note">${body}</p></div>`;
+  document.title = title;
+}
+
+(async () => {
+  try {
+    const res = await fetch(`/api/code?path=${encodeURIComponent(want)}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    data = await res.json();
+  } catch (e) {
+    data = { kind: "error", path: want, repo: "repository" };
+    return renderEmpty("The quiz server is not answering", `Start it with <code>python3 quiz/app/server.py</code>, then reload. (${esc(e.message)})`);
+  }
+  if (data.kind === "pdf") return location.replace(`/raw/${encodeURI(data.path)}`);
+  if (data.kind === "file") return renderFile();
+  if (data.kind === "dir") return renderList(data.resolved_from ? `<code>${esc(data.resolved_from)}</code> is <code>${esc(data.path)}</code>.` : "", data.entries, data.path);
+  if (data.kind === "ambiguous") return renderList(`More than one file matches <code>${esc(data.path)}</code>:`, data.entries, "");
+  if (data.kind === "binary") return renderEmpty("Not a text file", `<code>${esc(data.path)}</code> is ${Math.round(data.size / 1024)} KB of binary data.`);
+  renderEmpty("No such file", `<code>${esc(data.path)}</code> is not in the working tree, or git ignores it (the viewer only shows what git tracks or would track).`);
+})();
+</script>
+</body>
+</html>
