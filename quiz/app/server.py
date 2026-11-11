@@ -14,6 +14,9 @@ read outside the repository. Each graded answer is one Claude Code session (name
 "oral-quiz: <question>"); a follow-up resumes that session, so the grader still
 has what it read.
 
+The question bank (``questions.json``) is reread whenever it changes, so edits to
+it show up on the next page load without restarting the server.
+
 Attempts in progress are kept in ``quiz/.attempts/<id>.json``. "Save to quiz/"
 writes ``quiz/quizN/`` (the lowest-numbered empty one, else the next number) with
 ``quiz.md`` (the transcript), ``quiz.json`` (all data, rubric included) and
@@ -46,10 +49,8 @@ APP_DIR = Path(__file__).resolve().parent
 QUIZ_DIR = APP_DIR.parent
 REPO = QUIZ_DIR.parent
 ATTEMPTS_DIR = QUIZ_DIR / ".attempts"
-BANK = json.loads((APP_DIR / "questions.json").read_text(encoding="utf-8"))
-QUESTIONS = {q["id"]: q for q in BANK["questions"]}
+BANK_PATH = APP_DIR / "questions.json"
 PUBLIC_FIELDS = ("id", "title", "tag", "prompt", "hints", "context")
-HANDOUT = REPO / BANK["handout"]
 
 ATTEMPT_ID = re.compile(r"a-\d{8}-\d{6}-[a-z0-9]{4}")
 SESSION_ID = re.compile(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}")
@@ -125,10 +126,41 @@ def rel(path: Optional[str]) -> str:
         return str(path)
 
 
+_bank: dict = {}
+_bank_guard = threading.Lock()
+
+
+def bank() -> dict:
+    """The question bank, reread whenever questions.json changes on disk.
+
+    The page and the grader always see the bank as it is now, without a restart.
+    If the file does not parse (an edit in progress), the last good copy stays.
+    """
+    mtime = BANK_PATH.stat().st_mtime_ns
+    with _bank_guard:
+        if _bank.get("mtime") != mtime:
+            try:
+                data = json.loads(BANK_PATH.read_text(encoding="utf-8"))
+                by_id = {q["id"]: q for q in data["questions"]}
+            except (ValueError, KeyError, TypeError) as exc:
+                if not _bank:
+                    raise
+                print(f"questions.json is not valid ({exc!r}); keeping the copy loaded before.", file=sys.stderr)
+            else:
+                _bank.update(data=data, by_id=by_id)
+            _bank["mtime"] = mtime
+        return _bank["data"]
+
+
+def question(qid: object) -> Optional[dict]:
+    bank()
+    return _bank["by_id"].get(qid)
+
+
 def rubric_text(q: dict) -> str:
     return (
         f"Key points a complete answer covers (paths are repo-relative; line numbers were taken at commit "
-        f"{BANK['rubric_commit']}):\n" + "\n".join(f"- {p}" for p in q["points"])
+        f"{bank()['rubric_commit']}):\n" + "\n".join(f"- {p}" for p in q["points"])
         + "\n\nReference locations:\n" + "\n".join(f"- {r}" for r in q["refs"])
         + "\n\nCommon weak answers:\n" + "\n".join(f"- {p}" for p in q["pitfalls"])
     )
@@ -142,7 +174,7 @@ def handout_text(q: dict) -> str:
         return x["text"] + (f" [{'; '.join(x['refs'])}]" if x["refs"] else "")
 
     return (
-        f"Source in {BANK['handout']}: {where}\n"
+        f"Source in {bank()['handout']}: {where}\n"
         "What the starter code provided:\n" + "\n".join(f"- {item(p)}" for p in c["provided"])
         + "\nWhat the handout asked for:\n" + "\n".join(f"- {item(a)}" for a in c["asked"])
         + f"\nDesign decision: {item(c['decision'])}"
@@ -154,7 +186,7 @@ def grade_prompt(q: dict, answer: str, refs: str) -> str:
     drift = (
         f"The repository is at commit {state['head']}"
         + (" with uncommitted changes under cs329z_hw1/" if state["package_changed"] else "")
-        + f"; the rubric's line numbers come from {BANK['rubric_commit']}. Trust the code as it is now."
+        + f"; the rubric's line numbers come from {bank()['rubric_commit']}. Trust the code as it is now."
     )
     return f"""You grade a practice question for the oral quiz of Stanford CS329Z (Engineering AI Agents), Assignment 1, "Building an Agentic Harness". In the real quiz a TA asks the student, for 10 minutes, to explain design decisions in their own code and to point to where they are implemented. There are no trick questions. Your feedback should get the student ready for that conversation.
 
@@ -403,19 +435,21 @@ class Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path in ("/", "/index.html"):
             return self._send(200, (APP_DIR / "index.html").read_bytes(), "text/html; charset=utf-8")
+        b = bank()
         if path == "/handout.pdf":
-            if not HANDOUT.is_file():
-                return self._json(404, {"error": f"{BANK['handout']} is not in the repository root"})
-            return self._send(200, HANDOUT.read_bytes(), "application/pdf")
+            handout = REPO / b["handout"]
+            if not handout.is_file():
+                return self._json(404, {"error": f"{b['handout']} is not in the repository root"})
+            return self._send(200, handout.read_bytes(), "application/pdf")
         if path == "/api/info":
             return self._json(200, {
-                **repo_state(), "rubric_commit": BANK["rubric_commit"],
+                **repo_state(), "rubric_commit": b["rubric_commit"],
                 "model": CONFIG.get("model") or "your Claude Code default", "claude": CONFIG["claude_version"],
             })
         if path == "/api/questions":
             return self._json(200, {
-                "chips": BANK["chips"], "handout": BANK["handout"],
-                "questions": [{k: q[k] for k in PUBLIC_FIELDS} for q in BANK["questions"]],
+                "chips": b["chips"], "handout": b["handout"],
+                "questions": [{k: q[k] for k in PUBLIC_FIELDS} for q in b["questions"]],
             })
         if path == "/api/attempts":
             out = []
@@ -470,7 +504,7 @@ class Handler(BaseHTTPRequestHandler):
     # -- grading --
 
     def _grade(self, body: dict) -> None:
-        q = QUESTIONS.get(body.get("qid"))
+        q = question(body.get("qid"))
         if q is None:
             return self._json(400, {"error": "unknown question"})
         answer, refs = str(body.get("answer", "")).strip(), str(body.get("refs", "")).strip()
@@ -481,7 +515,7 @@ class Handler(BaseHTTPRequestHandler):
         self._run(cmd, grade_prompt(q, answer, refs), mode="grade", session_id=session_id)
 
     def _followup(self, body: dict) -> None:
-        q = QUESTIONS.get(body.get("qid"))
+        q = question(body.get("qid"))
         sid = str(body.get("session_id", ""))
         message = str(body.get("message", "")).strip()
         if q is None or not SESSION_ID.fullmatch(sid) or not message:
@@ -591,9 +625,9 @@ class Handler(BaseHTTPRequestHandler):
                 "format": "cs329z-oral-prep/v1",
                 "savedAt": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
                 "repo": repo_state(),
-                "rubric_commit": BANK["rubric_commit"],
+                "rubric_commit": bank()["rubric_commit"],
                 "attempt": state["attempt"],
-                "questions": [QUESTIONS[q] for q in order if q in QUESTIONS],
+                "questions": [q for q in map(question, order) if q],
                 "items": [state["items"].get(q, {"qid": q}) for q in order],
             }
             write_atomic(dest / "quiz.md", markdown)
@@ -627,6 +661,7 @@ def main() -> None:
     CONFIG.update(port=args.port, model=args.model, effort=args.effort, budget=args.budget,
                   claude=args.claude, claude_version=version, verbose=args.verbose)
     ensure_attempts_dir()
+    bank()
     try:
         server = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
     except OSError as exc:
