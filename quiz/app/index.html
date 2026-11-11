@@ -122,6 +122,8 @@ button, textarea, input { font: inherit; color: inherit; }
 details.hint { max-width: 68ch; font-size: 14px; color: var(--muted); }
 details.hint summary { cursor: pointer; width: fit-content; }
 details.hint ul { margin: 6px 0 0; padding-left: 20px; }
+details.hint.sample { max-width: none; }
+details.hint.sample > .md { color: var(--fg); font-size: 15px; margin-top: 4px; }
 details.context { max-width: 72ch; border: 1px solid var(--line); border-radius: var(--r); background: var(--surface); font-size: 14px; }
 details.context summary { cursor: pointer; padding: 8px 12px; font-family: var(--f-mono); font-size: 12.5px; color: var(--muted); overflow-wrap: anywhere; }
 details.context[open] summary { border-bottom: 1px solid var(--line); }
@@ -875,6 +877,7 @@ function renderQuestion() {
     <div class="ask"><p>${esc(q.prompt)}</p></div>
     ${contextHTML(q)}
     <details class="hint"><summary>Hint: what an examiner expects you to cover</summary><ul>${q.hints.map(h => `<li>${esc(h)}</li>`).join("")}</ul></details>
+    <div id="sample-q-${qid}">${sampleBlockHTML(qid)}</div>
     <div class="field">
       <label for="answer-${qid}"><span>${last ? "Your answer (edit and grade again to try again)" : "Your answer"}</span><span class="aux">⏱ <span id="timer-${qid}">${fmtSecs(elapsed(qid))}</span> · aim for about 60–90 s spoken</span></label>
       <textarea id="answer-${qid}" rows="7" placeholder="Say it the way you would to the TA: the decision, why you made it, and what it trades off.">${esc(item.answer)}</textarea>
@@ -943,7 +946,7 @@ function renderGradeArea(qid) {
     html += `<div class="result"><div class="result-tag">&lt;tool_result name="<b>grader</b>" status="running"&gt;</div><div class="result-body"><div class="activity" id="activity-${qid}">${activityHTML(qid)}</div><div class="row"><button class="btn small" data-act="stop" data-q="${qid}">Stop</button></div></div></div>`;
   }
   if (subs.length) {
-    html += gradeHTML(subs[subs.length - 1]) + useSampleHTML(qid, subs.length - 1) + sampleBlockHTML(qid);
+    html += gradeHTML(subs[subs.length - 1]) + useSampleHTML(qid, subs.length - 1);
     if (subs.length > 1) {
       html += `<details class="history" id="history-${qid}"><summary>Earlier tries (${subs.length - 1})</summary>${subs.slice(0, -1).map((s, k) => `<details class="past" id="try-${qid}-${k}">
         <summary><span class="chip ${scoreClass(s.grade.score)}">${s.grade.score}/5</span> Try ${k + 1} · ${esc(fmtDate(s.at))}${s.thread?.length ? ` · ${s.thread.length} follow-up messages` : ""} · ${inline(s.grade.verdict)}</summary>
@@ -1080,7 +1083,8 @@ async function submitSampleEdit(qid) {
   redrawSampleCard(qid);
 }
 
-// Under a graded try: the button that makes it the sample, then the sample itself.
+// Under a graded try, the button that makes it the sample. The sample itself is
+// folded under the hint, so it can be read before or after answering.
 function useSampleHTML(qid, k) {
   if (samplePick?.qid === qid && samplePick.k === k) {
     return `<div class="row confirm"><span>Replace the current sample answer with this try?</span>
@@ -1089,8 +1093,8 @@ function useSampleHTML(qid, k) {
   }
   return `<div class="row"><button class="btn small" data-act="sample-pick" data-q="${qid}" data-k="${k}">Make this my sample answer</button></div>`;
 }
-function sampleBlockHTML(qid) {
-  return `<details class="model sample" id="sample-under-${qid}"><summary>Sample answer</summary>${sampleBodyHTML(qid)}
+function sampleBlockHTML(qid, open = false) {
+  return `<details class="hint sample" ${open ? "open" : ""}><summary>Sample answer: a 5/5 answer and the code to point to</summary>${sampleBodyHTML(qid)}
     <div class="row">${sampleSourceHTML(qid)}<span class="spacer"></span><button class="btn small ghost" data-act="samples" data-q="${qid}" data-edit="1">Edit in Sample answers</button></div></details>`;
 }
 async function useAsSample(qid, k) {
@@ -1103,7 +1107,7 @@ async function useAsSample(qid, k) {
     toast(`This try is now the sample answer (quiz/samples/${qid}.md)`);
   } catch (e) { toast(errMsg(e)); }
   renderGradeArea(qid);
-  const d = document.getElementById(`sample-under-${qid}`); if (d) d.open = true;
+  const el = document.getElementById(`sample-q-${qid}`); if (el) el.innerHTML = sampleBlockHTML(qid, true);
 }
 
 // ------------------------------------------------------------------ events --
